@@ -107,7 +107,8 @@ export default function Home() {
         <div>
           <div className="hero-ribbon">
             <span className="hero-chip">Painel do Legislativo</span>
-            {connected && <span className="hero-chip live-chip" style={{background:"#166534",marginLeft:8}}>● Dados oficiais</span>}
+            {loading && <span className="hero-chip" style={{background:"#d97706",marginLeft:8}}>⏳ Carregando...</span>}
+            {connected && <span className="hero-chip" style={{background:"#166534",marginLeft:8}}>● Dados oficiais</span>}
           </div>
           <p className="eyebrow">Acompanhamento publico</p>
           <h1>Atuação parlamentar em linguagem clara</h1>
@@ -303,7 +304,10 @@ export default function Home() {
               <p className="eyebrow">Para acompanhar parlamentares</p>
               <h2>Diretorio publico</h2>
             </div>
-            <button className="mini-button" type="button">
+            <button className="mini-button" type="button"
+                    onClick={() => downloadCSV("parlamentares.csv", filteredParlamentares.map(p => ({
+                      nome: p.nome, cargo: p.cargo, partido: p.partido, uf: p.uf, proposicoes: p.proposicoes, participacao: p.participacao
+                    })))}>
               <Download aria-hidden="true" size={16} />
               CSV
             </button>
