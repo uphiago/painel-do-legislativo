@@ -1,0 +1,218 @@
+backend/src/legislativo_backend/collectors/senado.py
+  s_f7a703a6a87c7a::t_6af69815783f68 19-43
+  s_f7a703a6a87c7a::t_733acf333c863a 15-18
+  s_c91230ace860ac::t_fa27b9bcaaa0b3 46-69
+  s_c91230ace860ac::t_602f0f66f3f996 70-167
+  s_f7a703a6a87c7a::t_adc5d0387a9e67 1-14,44-45
+backend/supabase/.temp/linked-project.json
+  s_c91230ace860ac::t_aba22bbd195edc 1
+backend/supabase/.temp/project-ref
+  s_c91230ace860ac::t_aba22bbd195edc 1
+backend/tests/test_normalizers.py
+  s_f7a703a6a87c7a::t_adc5d0387a9e67 1,3-4,7,9-100
+  s_f7a703a6a87c7a::t_6af69815783f68 8,167-188
+  s_f7a703a6a87c7a::t_87843d832607a7 189-203
+  s_f7a703a6a87c7a::t_b0aeb423c96cc6 2,101-124
+  s_f7a703a6a87c7a::t_733acf333c863a 5-6,125-166
+backend/src/legislativo_backend/storage.py
+  s_f7a703a6a87c7a::t_adc5d0387a9e67 1-23
+backend/pyproject.toml
+  s_f7a703a6a87c7a::t_adc5d0387a9e67 1-8,10-11,13-36
+  s_f7a703a6a87c7a::t_88fa4ea9349cc2 37-39
+  s_c91230ace860ac::t_ad51c298341c53 12
+  s_c91230ace860ac::t_e443b69feeb777 9
+backend/supabase/.temp/storage-version
+  s_c91230ace860ac::t_aba22bbd195edc 1
+backend/docs/source-inventory.md
+  s_f7a703a6a87c7a::t_b55dff8d758a76 1-28,33-40,47-73,79-98,113-157
+  s_f7a703a6a87c7a::t_f0cd82ccf923e3 29-32,41-46,74-78,99-112
+backend/src/legislativo_backend/http.py
+  s_f7a703a6a87c7a::t_adc5d0387a9e67 1-2,4-13,16,41,43-47,50-53
+  s_c91230ace860ac::t_3090eb3137ad39 3,14-15,17-40,42,48-49
+backend/tests/test_cli_db.py
+  s_f7a703a6a87c7a::t_79129bcad5f052 8,311-316
+  s_f7a703a6a87c7a::t_8612440692479c 352-388
+  s_f7a703a6a87c7a::t_b56ec2875adf25 215-265
+  s_f7a703a6a87c7a::t_146602d4a88e95 139-146,153-214
+  s_f7a703a6a87c7a::t_2c9594bd312590 2,389-419
+  s_f7a703a6a87c7a::t_435dca5dadff0a 147-152
+  s_f7a703a6a87c7a::t_28e3941a797e95 420-461
+  s_f7a703a6a87c7a::t_89b0d26fefa6e1 266-302
+  s_f7a703a6a87c7a::t_13d49b69ee98a6 86-138
+  s_f7a703a6a87c7a::t_8f85cc3b288f7e 303-310,317-351
+  s_f7a703a6a87c7a::t_03b70d0d1a8763 1,3-7,9-85
+backend/src/legislativo_backend/collectors/camara.py
+  s_c91230ace860ac::t_687f846d199454 316-319,328-331
+  s_c91230ace860ac::t_5df9c374e4835a 332-351
+  s_c91230ace860ac::t_9fb55be08f1795 5
+  s_f7a703a6a87c7a::t_86ad39bbc4465d 10,15,20-31
+  s_c91230ace860ac::t_c5b8f3fde3b9d3 302-307
+  s_f7a703a6a87c7a::t_6af69815783f68 56-57,71-96
+  s_c91230ace860ac::t_754de2c898286b 135-301,308-315,320-327
+  s_c91230ace860ac::t_1c88db01394e9b 97-134
+  s_f7a703a6a87c7a::t_693abf0d6b0cf2 58-70
+  s_f7a703a6a87c7a::t_adc5d0387a9e67 1-4,6-9,11-14,16-19,32-55
+.gitignore
+  s_c91230ace860ac::t_46a2973aef03e6 3-4
+  s_f7a703a6a87c7a::t_b55dff8d758a76 6
+  s_f7a703a6a87c7a::t_3c318ba66fda24 7
+  s_f7a703a6a87c7a::t_adc5d0387a9e67 1-2,5,8-12
+backend/supabase/.temp/pooler-url
+  s_c91230ace860ac::t_aba22bbd195edc 1
+backend/supabase/.temp/postgres-version
+  s_c91230ace860ac::t_aba22bbd195edc 1
+backend/supabase/.temp/cli-latest
+  s_c91230ace860ac::t_f7b5ec63a8eca4 1
+backend/src/legislativo_backend/db.py
+  s_c91230ace860ac::t_a779811a0ee754 263,267,270-273
+  s_c91230ace860ac::t_90726035f8b9c9 627-666,668-676,678-681,683-688,690-703,705-706,708-722,724-760,767-768
+  s_c91230ace860ac::t_19e921990b7543 161-209
+  s_c91230ace860ac::t_970c728a82bc2c 211-218
+  s_c91230ace860ac::t_35f1ffee4779a8 127-132,134-135,139-140,142-160
+  s_c91230ace860ac::t_d7e7258559d9e2 346-394,396-397,399-402,404-413,415-416,418-420,422-443,445,447,449-457,459-462,464-466,468-524,544
+  s_c91230ace860ac::t_b424b60770c24d 528,542
+  s_c91230ace860ac::t_80293879eb56de 33-39
+  s_c91230ace860ac::t_6e0baeeb78542b 575-577,580,589,605,608-612
+  s_c91230ace860ac::t_2e506ea8413c3a 133,136-138,141
+  s_f7a703a6a87c7a::t_5c9c1c357b4b18 46-55,57-58,60-63,65
+  s_c91230ace860ac::t_2f2c10635a8f39 262,266,395,398,403,414,417,421,444,446,448,458,463,467,604,667,677,682,689,704,707,723,764,766
+  s_c91230ace860ac::t_6b1d665cfd29d1 525-527,529,531-541,543
+  s_c91230ace860ac::t_96bdf8d250a4e7 761-762
+  s_c91230ace860ac::t_49a1080fb48747 530
+  s_f7a703a6a87c7a::t_ded615f2f25628 94-116,118-126,547-550
+  s_c91230ace860ac::t_e8d4d344ccc9b7 56,59,64
+  s_f7a703a6a87c7a::t_db75693a423764 1-32,40-45,210,219-224,226-228,230-261,264-265,268-269,274-345,545-546,551-574,578-579,581-588,590-603,606-607,613-626,763,765,769
+  s_c91230ace860ac::t_3014cfecef888c 225,229
+  s_f7a703a6a87c7a::t_b66a566b05e4f8 66-93
+  s_f7a703a6a87c7a::t_ba4febe36cca4b 117
+backend/docs/data-model.md
+  s_c91230ace860ac::t_57cba6d9213347 1-242
+backend/supabase/migrations/20260613182353_enforce_rls_readonly.sql
+  s_c91230ace860ac::t_4c4d01a764b752 1-47
+backend/tests/test_camara_pagination.py
+  s_f7a703a6a87c7a::t_1571e08bb5d1ca 1-35
+  s_f7a703a6a87c7a::t_5d59da993206f0 36-51
+backend/supabase/migrations/20260613175810_align_column_names.sql
+  s_c91230ace860ac::t_8e3653cbffe59c 1-15
+backend/supabase/migrations/20260613182526_harden_readonly.sql
+  s_c91230ace860ac::t_f20fc6f7017579 1-29
+backend/supabase/migrations/20260613181325_fix_expense_columns.sql
+  s_c91230ace860ac::t_2f2c10635a8f39 1
+backend/src/legislativo_backend/normalizers.py
+  s_f7a703a6a87c7a::t_87843d832607a7 3,151,156-158,169-177
+  s_c91230ace860ac::t_00b1ce282f6495 90,93
+  s_f7a703a6a87c7a::t_733acf333c863a 34-45,102-104,122-146
+  s_f7a703a6a87c7a::t_6af69815783f68 148-150,152-155,159-168
+  s_f7a703a6a87c7a::t_c77cebbb18e6c1 105,107-108,110-121,178-196
+  s_c91230ace860ac::t_baa8cabfe4044a 106,109
+  s_f7a703a6a87c7a::t_adc5d0387a9e67 1-2,4-33,46-89,91-92,94-101,147
+backend/src/legislativo_backend/cli.py
+  s_c91230ace860ac::t_1a6b9e444e7194 885
+  s_f7a703a6a87c7a::t_1cdd98139e1d63 64-74,803,805
+  s_c91230ace860ac::t_24db586f6066cc 54,59
+  s_c91230ace860ac::t_11f0e75c1cd788 1133,1143-1169
+  s_c91230ace860ac::t_e65ee4ae7e55d4 215
+  s_f7a703a6a87c7a::t_6091ecc198e8db 13,187-214,216-234
+  s_f7a703a6a87c7a::t_3927f33f4f938a 130-162
+  s_c91230ace860ac::t_b95b1e66a414d2 1045-1088,1090-1097,1099,1101-1132,1134-1142,1170-1172,1291-1294,1297-1308,1313-1323
+  s_c91230ace860ac::t_52cf8ce4e1fe5a 1173-1228,1271-1276,1279-1285,1287-1290
+  s_c91230ace860ac::t_a84e3c10efb765 90-99
+  s_c91230ace860ac::t_f8a9cb59730f0c 823-824
+  s_f7a703a6a87c7a::t_2a1f21b772bffd 630-674
+  s_c91230ace860ac::t_d127adcc5d8952 907-945,948-949
+  s_c91230ace860ac::t_dfe7e39f0c3366 1295-1296,1309-1312
+  s_f7a703a6a87c7a::t_14d06b8fcb9a44 117-129
+  s_f7a703a6a87c7a::t_9036bbb9d27b5a 417-469
+  s_c91230ace860ac::t_4684269b4c9ca4 855-884,886-906
+  s_c91230ace860ac::t_6c221ee1a8fa9a 23-25
+  s_f7a703a6a87c7a::t_388b059c4b75e2 341-416
+  s_f7a703a6a87c7a::t_205b918416b0b2 538-547,549-551,560,584-587,589-593,595-598,600-602
+  s_f7a703a6a87c7a::t_6af69815783f68 11-12,15-16,20-22,28-30,33,44,685-706,740-765,774-783,807-822,825-842
+  s_f7a703a6a87c7a::t_3f9081b3d0fe01 607
+  s_c91230ace860ac::t_62667593a2ff1f 946-947
+  s_c91230ace860ac::t_f1d7850a019e64 950-1044
+  s_c91230ace860ac::t_134aef22952fc4 1250-1270,1277-1278,1286
+  s_c91230ace860ac::t_a26c2dde389cec 792-796
+  s_f7a703a6a87c7a::t_adc5d0387a9e67 1-2,6-10,14,17-18,26,37,39-40,43,45-50,55,60,62,75-81,628-629,675-684,707-730,732-734,736-739,766-770,772-773,843-854,1324-1325
+  s_f7a703a6a87c7a::t_4154d927f6934c 5,36,51-52,56-57,61,63,82-89,100-116,163-186,235-294,470-476,478-537,603-606,608-627
+  s_f7a703a6a87c7a::t_b82bde9a929974 3-4,38,53,58
+  s_c91230ace860ac::t_03966e2458090c 799
+  s_c91230ace860ac::t_a15b1439289883 1089,1098,1100
+  s_c91230ace860ac::t_8b75a3e665e7f4 477,771
+  s_f7a703a6a87c7a::t_b8e0e4f8c62bb8 548,552-559,561-583,588,594,599
+  s_f7a703a6a87c7a::t_733acf333c863a 27,31-32,34-35,41-42,731,735,784-791,797-798,800-802,804,806
+  s_f7a703a6a87c7a::t_ba6a563c81d949 295-340
+  s_c91230ace860ac::t_27b4f39c01a2a1 1229-1249
+  s_f7a703a6a87c7a::t_d5af1244e3573c 19
+backend/tests/test_local_db.py
+  s_f7a703a6a87c7a::t_0b6d320caf4326 1-10,22-43,91-135
+  s_f7a703a6a87c7a::t_9db25ab6e3787a 136-153,155-156
+  s_c91230ace860ac::t_51349482d95278 11-21
+  s_f7a703a6a87c7a::t_a5b29bbd5fb18a 154
+  s_f7a703a6a87c7a::t_a7600c68cae9b7 75-90
+  s_f7a703a6a87c7a::t_23e5632b242962 44-74
+backend/src/legislativo_backend/collectors/__init__.py
+  s_f7a703a6a87c7a::t_adc5d0387a9e67 1
+backend/src/legislativo_backend/supabase_schema.sql
+  s_c91230ace860ac::t_fb3b932cdbfc90 24-26,29,39,56,59-63,211-212
+  s_c91230ace860ac::t_58bc508148de27 1-23,27-28,30-38,40-55,57-58,64-210,213-222
+backend/src/legislativo_backend/__init__.py
+  s_f7a703a6a87c7a::t_adc5d0387a9e67 1-5
+backend/supabase/migrations/20260613175514_init_schema.sql
+  s_c91230ace860ac::t_dcf89ceffbad7a 1-252
+backend/src/legislativo_backend/supabase_client.py
+  s_c91230ace860ac::t_67d9e72856cbbb 35,50-51,55,58,61,64,67,70,73-74,77-78,81,84-85,88-89,92-93,96-97,100
+  s_c91230ace860ac::t_443cac30bd396f 1-34,36-37,48,52-54,56-57,59-60,62-63,65-66,68-69,71-72,75-76,79-80,82-83,86-87,90-91,94-95,98-99
+  s_c91230ace860ac::t_d87a77b3e9a33f 38-47,49
+backend/supabase/.temp/storage-migration
+  s_c91230ace860ac::t_aba22bbd195edc 1
+backend/supabase/.temp/rest-version
+  s_c91230ace860ac::t_aba22bbd195edc 1
+backend/README.md
+  s_f7a703a6a87c7a::t_adc5d0387a9e67 1-33,35-36,38,44-48,85-87
+  s_f7a703a6a87c7a::t_9fe0713afef337 49-84
+  s_f7a703a6a87c7a::t_733acf333c863a 40,88-89
+  s_f7a703a6a87c7a::t_6af69815783f68 34,37,39,41-43
+backend/src/legislativo_backend/pipeline.py
+  s_c91230ace860ac::t_20264fde996d21 89,92,100,103
+  s_c91230ace860ac::t_2cd97751fd08e6 44
+  s_c91230ace860ac::t_bbca2934ef11f8 41-42
+  s_c91230ace860ac::t_0f3eadd3e9140a 438-450,455-457,460-471,479-550,555,557-564,566-573
+  s_c91230ace860ac::t_aa1dad0589e56a 586,588-591,596,609,611-614,619
+  s_c91230ace860ac::t_f87f9409e4dfa6 11
+  s_c91230ace860ac::t_90dc555f96e695 96-99
+  s_c91230ace860ac::t_f7e235b04852e5 472-478
+  s_c91230ace860ac::t_8dfb1346ff211c 64-81,109,111,113-164,166-168,170-172,174-176,179,181,183-184,187-195,197-437,451-454,458-459,551-554,556,565,575-585,587,592-595,597,606-607,615-618,620,629-630,633-638,645-646,650,654-658,660-667,669-678,680-681,696
+  s_c91230ace860ac::t_fa71408918d5be 1-3,5-9,12-18,23-40,43,45-63,82-88,90-91,93-95,101-102,104-108,110,112,165,169,173,177-178,180,182,185-186,196,574,598-605,608,610,621-628,631-632,639-644,647-649,651-653,687-695,697-700
+  s_c91230ace860ac::t_6d68520ac0dfa4 4,10,19-22
+  s_c91230ace860ac::t_4f0df432f12e9c 739-756,761-764,769-782
+  s_c91230ace860ac::t_b924446f7cf6e6 659,668,679,682-686
+  s_c91230ace860ac::t_bcdff0d1f9420e 757-760,765-768
+  s_c91230ace860ac::t_4f62e7b04d04f3 701-738
+backend/supabase/.temp/gotrue-version
+  s_c91230ace860ac::t_aba22bbd195edc 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "7d03d5142b60d78d993cb1ccfd759c6c12cbce58",
+  "prompts": {},
+  "sessions": {
+    "s_c91230ace860ac": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_13eb286edffeom417AdolRp7Lt",
+        "model": "deepseek-v4-flash"
+      },
+      "human_author": "uphiago <hollyvolks@hotmail.com>"
+    },
+    "s_f7a703a6a87c7a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019ea791-6cf1-7271-b891-5c1447c954ec",
+        "model": "gpt-5.5"
+      },
+      "human_author": "uphiago <hollyvolks@hotmail.com>"
+    }
+  }
+}
