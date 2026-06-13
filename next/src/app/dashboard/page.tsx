@@ -10,10 +10,13 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useLiveDashboard } from "@/data/liveData";
+import { createClient } from "@/utils/supabase/client";
+import { downloadCSV } from "@/data/comparacao";
 
 const tabs = ["Resumo", "Projetos", "Participacao", "Transparencia", "Tramitacao"];
+const UFS = ["Todas","AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
 
 export default function Home() {
   const { parlamentares, resumoCards, proposicoes, despesas, citizenQuestions,
@@ -22,15 +25,80 @@ export default function Home() {
   const [activeId, setActiveId] = useState(parlamentares[0]?.id ?? "");
   const [activeTab, setActiveTab] = useState(tabs[0]);
 
-  useEffect(() => {
-    if (parlamentares.length > 0 && !parlamentares.find((p) => p.id === activeId)) {
-      setActiveId(parlamentares[0].id);
+  // Search state
+  const [searchNome, setSearchNome] = useState("");
+  const [searchTema, setSearchTema] = useState("");
+  const [searchCasa, setSearchCasa] = useState("Ambas");
+  const [searchUf, setSearchUf] = useState("Todas");
+  const [searchProposicoes, setSearchProposicoes] = useState<any[]>([]);
+  const [searching, setSearching] = useState(false);
+
+  // Comparison
+  const [compareA, setCompareA] = useState<string | null>(null);
+  const [compareB, setCompareB] = useState<string | null>(null);
+  const [compareData, setCompareData] = useState<any>(null);
+  const [comparing, setComparing] = useState(false);
+
+  const toggleCompare = async (id: string) => {
+    if (compareA === id) { setCompareA(null); return; }
+    if (compareB === id) { setCompareB(null); return; }
+    if (!compareA) { setCompareA(id); return; }
+    if (!compareB) {
+      setCompareB(id);
+      setComparing(true);
+      const supabase = createClient();
+      const [rA, rB] = await Promise.all([loadStatsFn(supabase, compareA), loadStatsFn(supabase, id)]);
+      setCompareData({ a: rA, b: rB });
+      setComparing(false);
     }
-  }, [parlamentares, activeId]);
+  };
+
+  const clearCompare = () => { setCompareA(null); setCompareB(null); setCompareData(null); };
+
+  const loadStatsFn = async (supabase: ReturnType<typeof createClient>, extId: string) => {
+    const [parl, propC, orgC, frtC] = await Promise.all([
+      supabase.from("parlamentarians").select("nome,partido,uf").eq("external_id", extId).single(),
+      supabase.from("proposition_authors").select("*", { count: "exact", head: true }).eq("parliamentarian_external_id", extId),
+      supabase.from("organ_memberships").select("*", { count: "exact", head: true }).eq("parliamentarian_external_id", extId),
+      supabase.from("front_memberships").select("*", { count: "exact", head: true }).eq("parliamentarian_external_id", extId),
+    ]);
+    const p = parl.data;
+    return { nome: p?.nome ?? extId, partido: p?.partido ?? "?", uf: p?.uf ?? "?", proposicoes: propC.count ?? 0, orgaos: orgC.count ?? 0, frentes: frtC.count ?? 0 };
+  };
+
+  const buscarTema = useCallback(async (tema: string) => {
+    if (!tema) return;
+    setSearching(true);
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("propositions")
+      .select("external_id, sigla, numero, ano, ementa")
+      .ilike("ementa", `%${tema}%`)
+      .order("ano", { ascending: false })
+      .limit(20);
+    setSearchProposicoes(data ?? []);
+    setSearching(false);
+  }, []);
+
+  // Filter parliamentarians based on search
+  const filteredParlamentares = useMemo(() => {
+    return parlamentares.filter((p) => {
+      if (searchNome && !p.nome.toLowerCase().includes(searchNome.toLowerCase())) return false;
+      if (searchCasa !== "Ambas" && p.casa !== searchCasa) return false;
+      if (searchUf !== "Todas" && p.uf !== searchUf) return false;
+      return true;
+    });
+  }, [parlamentares, searchNome, searchCasa, searchUf]);
+
+  useEffect(() => {
+    if (filteredParlamentares.length > 0 && !filteredParlamentares.find((p) => p.id === activeId)) {
+      setActiveId(filteredParlamentares[0].id);
+    }
+  }, [filteredParlamentares, activeId]);
 
   const activeParlamentar = useMemo(
-    () => parlamentares.find((item) => item.id === activeId) ?? parlamentares[0],
-    [activeId],
+    () => filteredParlamentares.find((item) => item.id === activeId) ?? filteredParlamentares[0],
+    [activeId, filteredParlamentares],
   );
 
   return (
@@ -77,7 +145,8 @@ export default function Home() {
             <span>Nome do parlamentar</span>
             <div className="input-shell">
               <Search aria-hidden="true" size={18} />
-              <input placeholder="Ex.: Acácio Favacho, Alan Rick..." />
+              <input placeholder="Ex.: Acácio Favacho, Alan Rick..."
+                     value={searchNome} onChange={(e) => setSearchNome(e.target.value)} />
             </div>
           </label>
 
@@ -85,13 +154,15 @@ export default function Home() {
             <span>Tema ou palavra-chave</span>
             <div className="input-shell">
               <Filter aria-hidden="true" size={18} />
-              <input placeholder="Ex.: segurança pública, saúde, educação..." />
+              <input placeholder="Ex.: segurança pública, saúde, educação..."
+                     value={searchTema} onChange={(e) => setSearchTema(e.target.value)}
+                     onKeyDown={(e) => e.key === "Enter" && buscarTema(searchTema)} />
             </div>
           </label>
 
           <label className="field">
             <span>Casa</span>
-            <select defaultValue="Ambas">
+            <select value={searchCasa} onChange={(e) => setSearchCasa(e.target.value)}>
               <option>Ambas</option>
               <option>Camara</option>
               <option>Senado</option>
@@ -100,12 +171,8 @@ export default function Home() {
 
           <label className="field">
             <span>UF</span>
-            <select defaultValue="Todas">
-              <option>Todas</option>
-              <option>RJ</option>
-              <option>SP</option>
-              <option>BA</option>
-              <option>MG</option>
+            <select value={searchUf} onChange={(e) => setSearchUf(e.target.value)}>
+              {UFS.map((uf) => <option key={uf}>{uf}</option>)}
             </select>
           </label>
 
@@ -119,7 +186,7 @@ export default function Home() {
             </select>
           </label>
 
-          <button className="primary-button" type="button">
+          <button className="primary-button" type="button" onClick={() => buscarTema(searchTema)}>
             <SlidersHorizontal aria-hidden="true" size={18} />
             Filtrar
           </button>
@@ -128,7 +195,8 @@ export default function Home() {
         <div className="quick-pills">
           {["Segurança pública", "Saúde", "Educação", "Meio ambiente", "Frentes", "Tramitação"].map(
             (item) => (
-              <button className="quick-pill" type="button" key={item}>
+              <button className="quick-pill" type="button" key={item}
+                      onClick={() => { setSearchTema(item); buscarTema(item); }}>
                 {item}
               </button>
             ),
@@ -204,22 +272,24 @@ export default function Home() {
         <article className="collector-queue-card civic-queue-card">
           <div className="section-head compact">
             <div>
-              <p className="eyebrow">Leitura do recorte</p>
-              <h2>O que acompanhar primeiro</h2>
+              <p className="eyebrow">{searchTema ? `Busca: "${searchTema}"` : "Leitura do recorte"}</p>
+              <h2>{searchTema
+                ? `${searchProposicoes.length} resultados` + (searching ? " (buscando...)" : "")
+                : "O que acompanhar primeiro"}</h2>
             </div>
           </div>
           <div className="collector-run-list">
-            {proposicoes.map((item) => (
+            {(searchTema ? searchProposicoes : proposicoes).map((item: any) => (
               <article key={`${item.sigla}-${item.numero}`}>
                 <BarChart3 aria-hidden="true" size={18} />
                 <div>
                   <strong>
-                    {item.sigla} {item.numero}
+                    {item.sigla} {item.numero}{item.ano ? `/${item.ano}` : ""}
                   </strong>
-                  <span>{item.status}</span>
+                  <span>{item.status ?? item.ementa?.slice(0, 50)}</span>
                 </div>
-                <p>{item.responsavel}</p>
-                <small>{item.impacto}</small>
+                <p>{item.responsavel ?? item.ementa?.slice(0, 80)}</p>
+                <small>{item.impacto ?? "Resultado da busca"}</small>
               </article>
             ))}
           </div>
@@ -240,7 +310,7 @@ export default function Home() {
           </div>
 
           <div className="parlamentar-list">
-            {parlamentares.map((parlamentar) => (
+            {filteredParlamentares.map((parlamentar) => (
               <button
                 className={`parlamentar-row ${
                   parlamentar.id === activeParlamentar.id ? "is-active" : ""
@@ -266,6 +336,11 @@ export default function Home() {
                 <span className="row-metrics">
                   <b>{parlamentar.proposicoes}</b>
                   <small>projetos</small>
+                </span>
+                <span className="row-compare" onClick={(e) => { e.stopPropagation(); toggleCompare(parlamentar.id); }}
+                      title="Selecionar para comparar"
+                      style={{cursor:"pointer",padding:"0 4px",fontSize:11,color:(compareA===parlamentar.id||compareB===parlamentar.id)?"#2563eb":"#999"}}>
+                  {compareA === parlamentar.id ? "❶" : compareB === parlamentar.id ? "❷" : "⇆"}
                 </span>
               </button>
             ))}
@@ -453,6 +528,45 @@ export default function Home() {
           </div>
         </article>
       </section>
+
+      {compareA && compareB && (
+        <section className="dashboard-grid" style={{marginTop: 24}}>
+          <article className="profile-card" style={{maxWidth: "100%"}}>
+            <div className="profile-hero">
+              <div className="profile-title">
+                <p className="eyebrow">Comparação</p>
+                <h2>{compareData?.a?.nome ?? "..."} vs {compareData?.b?.nome ?? "..."}</h2>
+                <button className="secondary-button" onClick={clearCompare} style={{marginTop:8}}>Limpar comparação</button>
+              </div>
+            </div>
+            {comparing && <p style={{padding:16}}>Carregando comparação...</p>}
+            {compareData && (
+              <table style={{width:"100%",borderCollapse:"collapse",margin:"16px 0"}}>
+                <thead><tr style={{background:"#f8fafc"}}>
+                  <th style={{padding:8,textAlign:"left"}}>Indicador</th>
+                  <th style={{padding:8,textAlign:"center"}}>{compareData.a.nome}</th>
+                  <th style={{padding:8,textAlign:"center"}}>{compareData.b.nome}</th>
+                </tr></thead>
+                <tbody>
+                  {[
+                    ["Partido", "partido"],
+                    ["UF", "uf"],
+                    ["Proposições", "proposicoes"],
+                    ["Órgãos", "orgaos"],
+                    ["Frentes", "frentes"],
+                  ].map(([label, key]) => (
+                    <tr key={key} style={{borderBottom:"1px solid #e2e8f0"}}>
+                      <td style={{padding:8,fontWeight:500}}>{label}</td>
+                      <td style={{padding:8,textAlign:"center",fontWeight:"bold",color:"#2563eb"}}>{(compareData.a as any)[key]}</td>
+                      <td style={{padding:8,textAlign:"center",fontWeight:"bold",color:"#059669"}}>{(compareData.b as any)[key]}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </article>
+        </section>
+      )}
 
     </main>
   );
