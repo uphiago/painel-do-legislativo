@@ -1,0 +1,32 @@
+next/src/data/comparacao.ts
+  s_c91230ace860ac::t_6ab7a210ef2ad3 1-77
+next/src/app/dashboard/page.tsx
+  s_c91230ace860ac::t_5f0f9a48408b66 275-278,282,287,289,291-292
+  s_c91230ace860ac::t_3ab9b16e19ec60 36-49,51-57
+  s_c91230ace860ac::t_a0e8959ad9f78a 198-199
+  s_c91230ace860ac::t_8b0d4995dfdd1e 58-68
+  s_c91230ace860ac::t_4578c6822022cb 313
+  s_c91230ace860ac::t_eeb36d3209ad33 100-101
+  s_c91230ace860ac::t_07dedb24cfdb8a 532-570
+  s_c91230ace860ac::t_0507e243330cbb 16
+  s_c91230ace860ac::t_9da35cfe64be1a 13,15,19,28-35,69-92,94-95,97
+  s_c91230ace860ac::t_37bf598113609b 340-344
+  s_c91230ace860ac::t_e53853bdfd0d05 148-149,157-159,165,174-175,189
+  s_c91230ace860ac::t_34fbf327d2a3eb 50
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "8497bfacdd77c06ac35b7af424f5b0ceab675f85",
+  "prompts": {},
+  "sessions": {
+    "s_c91230ace860ac": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_13eb286edffeom417AdolRp7Lt",
+        "model": "deepseek-v4-flash"
+      },
+      "human_author": "uphiago <hollyvolks@hotmail.com>"
+    }
+  }
+}
