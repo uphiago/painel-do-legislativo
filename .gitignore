@@ -1,0 +1,13 @@
+.superpowers/
+backend/.venv/
+backend/.env
+next/.env.local
+backend/data/raw/
+data/raw/
+data/local/
+backend/.pytest_cache/
+backend/.ruff_cache/
+backend/**/__pycache__/
+next/.next/
+next/node_modules/
+backend/supabase/.temp/

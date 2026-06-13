@@ -1,0 +1,1 @@
+ALTER TABLE expenses RENAME COLUMN parliamentarian_external_id TO parlamentar_external_id;
