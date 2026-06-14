@@ -1,0 +1,29 @@
+next/src/data/liveData.ts
+  s_53fe32f92074a5::t_83251ad71e5725 248-323
+next/src/app/dashboard/page.tsx
+  s_53fe32f92074a5::t_1314296d3f8799 13-14
+  s_53fe32f92074a5::t_c6b2cf81ff6ee1 469,478-488,499-517,529-531,536,548-561,563-567,573-593
+  s_53fe32f92074a5::t_3c7e4fd3e02c5a 136-138,146-149,153-157
+  s_53fe32f92074a5::t_616778931684c4 427
+  s_53fe32f92074a5::t_55e9d38f931cf4 37
+  s_53fe32f92074a5::t_6d3ff55997c201 135,139-145,150-152,158
+  s_53fe32f92074a5::t_01b184e425ea13 250
+next/src/app/globals.css
+  s_53fe32f92074a5::t_c832ba68319d1a 1162-1167
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "032fd5e03a0a1c887df7861f58dee782f3354661",
+  "prompts": {},
+  "sessions": {
+    "s_53fe32f92074a5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "bcef77e5-95b2-4eed-82b3-8730cbfdf9d8",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "uphiago <hollyvolks@hotmail.com>"
+    }
+  }
+}
