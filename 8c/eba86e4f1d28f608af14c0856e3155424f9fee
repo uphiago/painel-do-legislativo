@@ -1,0 +1,21 @@
+backend/supabase/migrations/20260614013500_harden_discursos_and_future.sql
+  s_53fe32f92074a5::t_94bd39cbf75dfc 1-22
+.gitignore
+  s_53fe32f92074a5::t_dd0f54282de039 14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "8ceba86e4f1d28f608af14c0856e3155424f9fee",
+  "prompts": {},
+  "sessions": {
+    "s_53fe32f92074a5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "bcef77e5-95b2-4eed-82b3-8730cbfdf9d8",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "uphiago <hollyvolks@hotmail.com>"
+    }
+  }
+}
