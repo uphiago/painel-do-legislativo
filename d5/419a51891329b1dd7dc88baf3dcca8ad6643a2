@@ -1,0 +1,19 @@
+next/src/app/globals.css
+  s_c91230ace860ac::t_d47f814dabcecc 1627-1636
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "d5419a51891329b1dd7dc88baf3dcca8ad6643a2",
+  "prompts": {},
+  "sessions": {
+    "s_c91230ace860ac": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_13eb286edffeom417AdolRp7Lt",
+        "model": "deepseek-v4-flash"
+      },
+      "human_author": "uphiago <hollyvolks@hotmail.com>"
+    }
+  }
+}
