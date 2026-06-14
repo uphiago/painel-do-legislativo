@@ -1624,4 +1624,14 @@ h3 {
     grid-column: 2;
     text-align: left;
   }
+
+  .profile-card table {
+    display: block;
+    overflow-x: auto;
+    font-size: 12px;
+  }
+
+  .search-form {
+    grid-template-columns: 1fr;
+  }
 }
