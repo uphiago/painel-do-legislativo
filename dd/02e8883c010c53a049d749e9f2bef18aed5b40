@@ -1,0 +1,20 @@
+next/src/app/page.tsx
+  s_c91230ace860ac::t_e7c43737095f42 35
+  s_c91230ace860ac::t_2d59f1a3f65c46 4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "dd02e8883c010c53a049d749e9f2bef18aed5b40",
+  "prompts": {},
+  "sessions": {
+    "s_c91230ace860ac": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_13eb286edffeom417AdolRp7Lt",
+        "model": "deepseek-v4-flash"
+      },
+      "human_author": "uphiago <hollyvolks@hotmail.com>"
+    }
+  }
+}
