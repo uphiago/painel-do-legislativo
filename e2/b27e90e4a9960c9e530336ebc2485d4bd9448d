@@ -1,0 +1,104 @@
+backend/tests/test_http_and_helpers.py
+  s_53fe32f92074a5::t_38d7658e267e66 1-73
+backend/src/legislativo_backend/http.py
+  s_53fe32f92074a5::t_12b7b6d49ea27b 59-69
+  s_53fe32f92074a5::t_7f1653d757a7bc 3
+  s_53fe32f92074a5::t_6edd3d63b048d0 23,26-33
+next/src/app/page.tsx
+  s_53fe32f92074a5::t_38ad9d61fa875e 121
+  s_53fe32f92074a5::t_1298dfec38ef0c 2
+backend/src/legislativo_backend/normalizers.py
+  s_53fe32f92074a5::t_cf2d1694c369b0 9-21
+backend/src/legislativo_backend/pipeline.py
+  s_53fe32f92074a5::t_70fbc55e9b37b2 3
+  s_53fe32f92074a5::t_04ad0e68e83ccc 152-157
+  s_53fe32f92074a5::t_f55dd0d46652a1 21-22
+  s_53fe32f92074a5::t_fd4dc1a77bad39 424,428
+  s_53fe32f92074a5::t_808cc6b992d4b2 486-490
+  s_53fe32f92074a5::t_cac42f3770dfb9 859-861
+  s_53fe32f92074a5::t_d8ff846998e7f9 257,261,265
+  s_53fe32f92074a5::t_92cb1901474592 772-775,783-786
+next/src/app/globals.css
+  s_53fe32f92074a5::t_c0521628505038 1157-1165
+  s_53fe32f92074a5::t_4c5618ce1dfa84 1567-1568
+  s_53fe32f92074a5::t_bee410151ac65b 1576-1583
+  s_53fe32f92074a5::t_2dae42c94f33d9 121-122
+  s_53fe32f92074a5::t_8ffaa94db775e1 1124
+next/src/data/comparacao.ts
+  s_53fe32f92074a5::t_7dcf84ff612131 3,6-9
+next/next.config.ts
+  s_53fe32f92074a5::t_51fb9ba658d896 4-10
+next/src/data/pdfExport.ts
+  s_53fe32f92074a5::t_206892855ccbc6 74
+next/src/data/mockLegislativo.ts
+  s_53fe32f92074a5::t_4616c5165edfef 34
+  s_53fe32f92074a5::t_8a5389404c9291 190-201
+next/src/app/dashboard/page.tsx
+  s_53fe32f92074a5::t_5188dcd6ff8d99 567-574
+  s_53fe32f92074a5::t_a5098a28d94f02 403
+  s_53fe32f92074a5::t_dc7ed101b7577b 42
+  s_53fe32f92074a5::t_6b8a0ad880c0f5 128-129
+  s_53fe32f92074a5::t_0fe7eb45d497cb 436
+  s_53fe32f92074a5::t_e8061e5253cfe0 626,632,635-636
+  s_53fe32f92074a5::t_bd66ded43deaaf 380
+  s_53fe32f92074a5::t_3c11fbbf405792 79
+  s_53fe32f92074a5::t_70a9091868fadd 557
+  s_53fe32f92074a5::t_05fd410363334c 577-604
+  s_53fe32f92074a5::t_83cfe904959dc3 282-311
+  s_53fe32f92074a5::t_d3170f30faa1b0 49-50
+  s_53fe32f92074a5::t_790acd0a0eecb4 109,111,117-123,125-126
+  s_53fe32f92074a5::t_8962b866325739 428
+  s_53fe32f92074a5::t_854c341e7b68dd 22-28
+  s_53fe32f92074a5::t_b0685db6c10211 449
+  s_53fe32f92074a5::t_c099b07286ee7f 321
+  s_53fe32f92074a5::t_74a02b9f152990 145
+  s_53fe32f92074a5::t_c2f76701ce56b7 412,424
+  s_53fe32f92074a5::t_65bbf540005c5e 214-215
+  s_53fe32f92074a5::t_7f952dc4bf5249 98
+  s_53fe32f92074a5::t_737cf8332664a2 19,30-34
+  s_53fe32f92074a5::t_86bd8f54faa11d 199-201
+  s_53fe32f92074a5::t_b18d4319a5f79e 13
+  s_53fe32f92074a5::t_133c9f663ce6d0 401
+  s_53fe32f92074a5::t_e6425af6e6e016 562
+backend/src/legislativo_backend/collectors/camara.py
+  s_53fe32f92074a5::t_835f01bc2974af 295
+  s_53fe32f92074a5::t_d7906dab08d733 5
+  s_53fe32f92074a5::t_ce934620f6d348 324
+  s_53fe32f92074a5::t_82df10a15dea4a 337
+  s_53fe32f92074a5::t_b4e6aa9598c283 311
+backend/src/legislativo_backend/supabase_schema.sql
+  s_53fe32f92074a5::t_57dad5f60e325c 215
+  s_53fe32f92074a5::t_0fd29c14bb01ea 55
+next/src/data/types.ts
+  s_53fe32f92074a5::t_f0b601615d78ba 1-6,10-12,15,19,23,32,36-37,40-44,48,59,67,72-73,76-78,81-88
+backend/src/legislativo_backend/cli.py
+  s_53fe32f92074a5::t_e6dc6151fbbb5d 95
+  s_53fe32f92074a5::t_5b3e44400aa27c 38
+next/src/app/layout.tsx
+  s_53fe32f92074a5::t_eb27de30a42607 16-20,22-45
+next/src/data/liveData.ts
+  s_53fe32f92074a5::t_ed13b15937339d 13
+  s_53fe32f92074a5::t_85205bec1ebe7c 125-132,139,144,147,154-158,162,164,167-169,172-177,180-196,198-207
+  s_53fe32f92074a5::t_51ec133b8a6e8f 224-231
+  s_53fe32f92074a5::t_dd6bd39fcf017a 197
+  s_53fe32f92074a5::t_8e4d189e0b792f 133-135,138
+  s_53fe32f92074a5::t_c535bea87e60ac 212
+  s_53fe32f92074a5::t_06d4713dab310c 12,15
+  s_53fe32f92074a5::t_b5ab87619409cd 213
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "e2b27e90e4a9960c9e530336ebc2485d4bd9448d",
+  "prompts": {},
+  "sessions": {
+    "s_53fe32f92074a5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "bcef77e5-95b2-4eed-82b3-8730cbfdf9d8",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "uphiago <hollyvolks@hotmail.com>"
+    }
+  }
+}
