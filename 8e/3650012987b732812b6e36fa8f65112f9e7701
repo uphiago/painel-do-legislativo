@@ -1,0 +1,32 @@
+next/src/app/globals.css
+  s_c91230ace860ac::t_3b94921804ce70 1638-1745
+next/src/app/dashboard/page.tsx
+  s_c91230ace860ac::t_b30045aa9079b3 172
+  s_c91230ace860ac::t_0319bef980018d 13,18
+  s_c91230ace860ac::t_1129721a99901e 29,38-60
+  s_c91230ace860ac::t_d5372b66ea10f3 372
+  s_c91230ace860ac::t_08a006e04a0736 117
+  s_c91230ace860ac::t_df84e18fb5c6a1 321,323
+  s_c91230ace860ac::t_c537d8ad530d5e 451-452
+  s_c91230ace860ac::t_9d00fe4f841c88 599-600
+  s_c91230ace860ac::t_c6eee4221143cb 551
+  s_c91230ace860ac::t_e7dd25464ace22 330-339
+next/src/data/toast.tsx
+  s_c91230ace860ac::t_a7481d739f1ed4 1-30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "8e3650012987b732812b6e36fa8f65112f9e7701",
+  "prompts": {},
+  "sessions": {
+    "s_c91230ace860ac": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_13eb286edffeom417AdolRp7Lt",
+        "model": "deepseek-v4-flash"
+      },
+      "human_author": "uphiago <hollyvolks@hotmail.com>"
+    }
+  }
+}
