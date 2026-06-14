@@ -14,6 +14,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { useLiveDashboard } from "@/data/liveData";
 import { createClient } from "@/utils/supabase/client";
 import { downloadCSV } from "@/data/comparacao";
+import { generateParlamentarPDF } from "@/data/pdfExport";
 
 const tabs = ["Resumo", "Projetos", "Participacao", "Transparencia", "Tramitacao"];
 const UFS = ["Todas","AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
@@ -525,7 +526,8 @@ export default function Home() {
               Abrir pagina publica
               <ArrowUpRight aria-hidden="true" size={16} />
             </button>
-            <button className="secondary-button" type="button">
+            <button className="secondary-button" type="button"
+                    onClick={() => generateParlamentarPDF(activeParlamentar)}>
               Gerar relatorio PDF
               <Download aria-hidden="true" size={16} />
             </button>

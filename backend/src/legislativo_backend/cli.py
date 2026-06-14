@@ -1143,6 +1143,26 @@ def pipeline_enrich_proposicoes(
     _echo_db_summary(database)
 
 
+@pipeline_app.command("discursos")
+def pipeline_discursos(
+    db_path: DbPathOption = None,
+    limit: Annotated[int, typer.Option("--limit", min=1, max=81)] = 10,
+    offset: Annotated[int, typer.Option("--offset", min=0)] = 0,
+    supabase_sync: Annotated[bool, typer.Option("--supabase")] = False,
+) -> None:
+    """Coleta discursos de senadores e popula tabela discursos."""
+    from legislativo_backend.pipeline import collect_discursos_senado
+    from legislativo_backend.supabase_client import SupabaseClient
+
+    database = _db(db_path)
+    supabase = SupabaseClient() if supabase_sync else None
+
+    counts = collect_discursos_senado(database, supabase, limit=limit, offset=offset)
+    for name, count in counts.items():
+        typer.echo(f"{name}: {count}")
+    _echo_db_summary(database)
+
+
 @pipeline_app.command("enrich-props-incr")
 def pipeline_enrich_props_incr(
     db_path: DbPathOption = None,

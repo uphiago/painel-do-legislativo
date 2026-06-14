@@ -780,3 +780,73 @@ def collect_bulk_ceap_year(
             external_id=f"ceap-{ano}", payload={"ano": ano, "error": str(exc)[:500]},
         )
     return c
+
+
+def collect_discursos_senado(
+    database: LocalDatabase,
+    supabase: SupabaseClient | None = None,
+    limit: int = 20,
+    offset: int = 0,
+    data_inicio: str | None = None,
+    data_fim: str | None = None,
+) -> dict[str, int]:
+    """Coleta discursos de senadores e persiste na tabela discursos."""
+    c: dict[str, int] = {"discursos": 0, "erros": 0}
+
+    senadores = database.list_parliamentarians(source="senado", limit=limit, offset=offset)
+
+    for s in senadores:
+        codigo = int(s["external_id"])
+        try:
+            discursos_raw = senado.list_senador_discursos(codigo, data_inicio, data_fim)
+            discursos_lista = discursos_raw.get("DiscursosParlamentar", {}).get("Parlamentar", {}).get("Discursos", {}).get("Discurso", [])
+            if isinstance(discursos_lista, dict):
+                discursos_lista = [discursos_lista]
+            if not isinstance(discursos_lista, list):
+                discursos_lista = []
+
+            rows: list[dict[str, Any]] = []
+            for d in discursos_lista:
+                if not isinstance(d, dict):
+                    continue
+                rows.append({
+                    "senador_codigo": str(codigo),
+                    "senador_nome": s.get("name", ""),
+                    "data_discurso": d.get("DataDiscurso"),
+                    "casa": "senado",
+                    "tipo": d.get("TipoDiscurso"),
+                    "resumo": (d.get("ResumoDiscurso") or "")[:500],
+                    "texto_url": None,
+                })
+
+            local_count = 0
+            now = _now()
+            with database.connect() as conn:
+                conn.executemany(
+                    """INSERT OR IGNORE INTO discursos
+                       (senador_codigo, senador_nome, data_discurso, casa, tipo, resumo, texto_url, updated_at)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                    [(r["senador_codigo"], r["senador_nome"], r["data_discurso"],
+                      r["casa"], r["tipo"], r["resumo"], r["texto_url"], now) for r in rows],
+                )
+                local_count = len(rows)
+
+            c["discursos"] += local_count
+
+            if supabase and rows:
+                try:
+                    supabase._upsert("discursos", rows, on_conflict="senador_codigo,data_discurso")
+                except Exception:
+                    pass
+
+        except Exception:
+            c["erros"] += 1
+
+    database.record_sync_run(
+        job="pipeline:discursos-senado",
+        source="senado",
+        status="success" if c["erros"] == 0 else "partial",
+        records_count=c["discursos"],
+        metadata={**c, "limit": limit, "offset": offset},
+    )
+    return c

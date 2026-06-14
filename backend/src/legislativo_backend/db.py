@@ -35,7 +35,7 @@ class LocalDatabase:
             "parties", "legislatures", "organs", "parliamentarian_mandates",
             "organ_memberships", "parliamentary_fronts", "front_memberships",
             "proposition_types", "proposition_authors", "proposition_themes",
-            "proposition_trackings",
+            "proposition_trackings", "discursos",
         ]
         with self.connect() as connection:
             return {
@@ -766,4 +766,17 @@ CREATE INDEX IF NOT EXISTS idx_expenses_year_month ON expenses(ano, mes);
 CREATE INDEX IF NOT EXISTS idx_organ_memberships_parlamentarian ON organ_memberships(parlamentar_external_id);
 CREATE INDEX IF NOT EXISTS idx_proposition_authors_proposition ON proposition_authors(proposition_external_id);
 CREATE INDEX IF NOT EXISTS idx_proposition_trackings_proposition ON proposition_trackings(proposition_external_id);
+
+CREATE TABLE IF NOT EXISTS discursos (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  senador_codigo TEXT NOT NULL,
+  senador_nome TEXT,
+  data_discurso TEXT,
+  casa TEXT DEFAULT 'senado',
+  tipo TEXT,
+  resumo TEXT,
+  texto_url TEXT,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_discursos_senador ON discursos(senador_codigo);
 """
