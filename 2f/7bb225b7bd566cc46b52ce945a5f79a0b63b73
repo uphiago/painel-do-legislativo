@@ -1,0 +1,27 @@
+next/src/app/dashboard/page.tsx
+  s_53fe32f92074a5::t_47b3f09cbf58f5 159-169
+  s_53fe32f92074a5::t_b73053c568074d 148
+  s_53fe32f92074a5::t_253ead20740aeb 446,450,454,458
+next/src/data/liveData.ts
+  s_53fe32f92074a5::t_f132acff32dff0 258-264,269
+  s_53fe32f92074a5::t_7dd7d04d37028d 324,327-329,332,336,339-346
+  s_53fe32f92074a5::t_f1d344ac221997 198
+  s_53fe32f92074a5::t_80b7ebe1acc52c 144-162,174-176
+  s_53fe32f92074a5::t_60f708180416a4 278-285
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "2f7bb225b7bd566cc46b52ce945a5f79a0b63b73",
+  "prompts": {},
+  "sessions": {
+    "s_53fe32f92074a5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "bcef77e5-95b2-4eed-82b3-8730cbfdf9d8",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "uphiago <hollyvolks@hotmail.com>"
+    }
+  }
+}
