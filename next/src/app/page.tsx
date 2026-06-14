@@ -1,29 +1,40 @@
 import Link from "next/link";
-import {
-  ArrowRight,
-  BarChart3,
-  FileText,
-  Gavel,
-  Search,
-  Users,
-} from "lucide-react";
-import { landingEvidence } from "@/data/mockLegislativo";
+import { ArrowRight, BarChart3, FileText, Gavel, Search, Users } from "lucide-react";
 
-export default function Home() {
+async function getLandingStats() {
+  try {
+    const res = await fetch("https://xvccxrtrwgxcllofdzls.supabase.co/rest/v1/parlamentarians?select=count", {
+      headers: {
+        apikey: "sb_publishable_MlFE6CrJaUDC2nG9bd3Vtw_n-wvhSMd",
+        Authorization: "Bearer sb_publishable_MlFE6CrJaUDC2nG9bd3Vtw_n-wvhSMd",
+      },
+      next: { revalidate: 3600 },
+    });
+    const count = res.headers.get("content-range")?.split("/")[1];
+    return { parl: count ? parseInt(count) : 0 };
+  } catch {
+    return { parl: 0 };
+  }
+}
+
+export default async function Home() {
+  const stats = await getLandingStats();
+
   return (
     <main className="landing-shell">
       <section className="landing-hero">
         <div className="landing-copy">
           <div className="hero-ribbon">
             <span className="hero-chip">Painel do Legislativo</span>
+            <span className="hero-chip" style={{ background: "#166534", marginLeft: 8 }}>● Dados oficiais</span>
           </div>
 
           <p className="eyebrow">Pesquisa legislativa para qualquer pessoa</p>
           <h1>Projetos, parlamentares e andamento em linguagem clara.</h1>
           <p className="landing-text">
-            Perfis parlamentares, proposicoes, leitura de tramitação e
-            transparência pública reunidos em uma interface para o cidadão
-            entender o que foi proposto, onde está e o que falta acontecer.
+            Perfis com fotos oficiais, proposições, tramitação explicada e transparência
+            pública — tudo reunido para o cidadão entender o que foi proposto, onde está
+            e quem pode fazer avançar.
           </p>
 
           <div className="landing-actions">
@@ -31,22 +42,27 @@ export default function Home() {
               Abrir dashboard
               <ArrowRight aria-hidden="true" size={18} />
             </Link>
-            <span className="landing-note">
-              Experiência demonstrativa com dados oficiais de amostra.
-            </span>
+            <Link className="landing-secondary-link" href="/fontes">
+              Fontes e metodologia
+            </Link>
           </div>
 
-          <div className="landing-stats" aria-label="Resumo do MVP">
-            {landingEvidence.map((item, index) => {
-              const Icon = [Users, FileText, Gavel][index] ?? BarChart3;
-              return (
-              <article key={item.label}>
-                <Icon aria-hidden="true" size={18} />
-                <strong>{item.value}</strong>
-                <span>{item.label}</span>
-              </article>
-              );
-            })}
+          <div className="landing-stats" aria-label="Resumo">
+            <article>
+              <Users aria-hidden="true" size={18} />
+              <strong>{stats.parl.toLocaleString("pt-BR")}</strong>
+              <span>perfis parlamentares</span>
+            </article>
+            <article>
+              <FileText aria-hidden="true" size={18} />
+              <strong>107 mil+</strong>
+              <span>proposições de 2025</span>
+            </article>
+            <article>
+              <Gavel aria-hidden="true" size={18} />
+              <strong>193 mil+</strong>
+              <span>despesas CEAP 2025</span>
+            </article>
           </div>
         </div>
 
@@ -54,67 +70,45 @@ export default function Home() {
           <div className="preview-window">
             <div className="preview-topbar">
               <span>Dashboard</span>
-              <strong>Dados oficiais organizados</strong>
+              <strong>Painel do Legislativo</strong>
             </div>
 
             <div className="preview-search">
               <Search aria-hidden="true" size={17} />
-              <span>Acácio Favacho + saúde</span>
+              <span>Busque por nome, tema ou palavra-chave</span>
             </div>
 
-            <div className="preview-kpis">
-              <article>
-                <strong>594</strong>
-                <span>perfis oficiais</span>
-              </article>
-              <article>
-                <strong>68 mil+</strong>
-                <span>matérias organizadas</span>
-              </article>
-              <article>
-                <strong>512 mil+</strong>
-                <span>despesas oficiais</span>
-              </article>
+            <div className="preview-photos">
+              <PhotoStrip />
             </div>
 
             <div className="preview-grid">
-              <div className="preview-list" aria-label="Lista de parlamentares">
-                {[
-                  ["Acácio Favacho", "Câmara - AP"],
-                  ["Alan Rick", "Senado - AC"],
-                  ["Segurança pública", "171 processos"],
-                ].map(([name, meta], index) => (
-                  <div className={index === 0 ? "is-selected" : ""} key={name}>
-                    <span>{name.slice(0, 2).toUpperCase()}</span>
-                    <strong>{name}</strong>
-                    <small>{meta}</small>
-                  </div>
-                ))}
-              </div>
-
-              <article className="preview-profile">
-                <span className="preview-label">Perfil parlamentar</span>
-                <h2>Acácio Favacho</h2>
-                <p>Deputado Federal - AP - MDB</p>
-                <div className="preview-badges">
-                  <span>5 órgãos</span>
-                  <span>208 frentes</span>
+              <article className="preview-feature">
+                <Users aria-hidden="true" size={20} />
+                <div>
+                  <strong>Perfis completos</strong>
+                  <p>Foto oficial, partido, UF, mandato, órgãos e frentes.</p>
                 </div>
               </article>
-
-              <article className="preview-card">
-                <Gavel aria-hidden="true" size={18} />
-                <strong>Tramitação</strong>
-                <p>Situação atual, próximo passo e responsável pela etapa.</p>
+              <article className="preview-feature">
+                <Gavel aria-hidden="true" size={20} />
+                <div>
+                  <strong>Tramitação explicada</strong>
+                  <p>Situação atual, próxima etapa e órgão responsável.</p>
+                </div>
               </article>
-
-              <article className="preview-card">
-                <BarChart3 aria-hidden="true" size={18} />
-                <strong>Temas</strong>
-                <div className="preview-bars">
-                  <span style={{ width: "76%" }} />
-                  <span style={{ width: "54%" }} />
-                  <span style={{ width: "38%" }} />
+              <article className="preview-feature">
+                <BarChart3 aria-hidden="true" size={20} />
+                <div>
+                  <strong>Comparação lado a lado</strong>
+                  <p>Selecione 2 parlamentares e compare atuação.</p>
+                </div>
+              </article>
+              <article className="preview-feature">
+                <FileText aria-hidden="true" size={20} />
+                <div>
+                  <strong>Exportação</strong>
+                  <p>CSV dos parlamentares. PDF com perfil e proposições.</p>
                 </div>
               </article>
             </div>
@@ -122,5 +116,28 @@ export default function Home() {
         </aside>
       </section>
     </main>
+  );
+}
+
+function PhotoStrip() {
+  const fotos = [
+    "https://www.camara.leg.br/internet/deputado/bandep/204379.jpg",
+    "https://www.camara.leg.br/internet/deputado/bandep/220593.jpg",
+    "https://www.camara.leg.br/internet/deputado/bandep/204436.jpg",
+    "https://www.camara.leg.br/internet/deputado/bandep/204554.jpg",
+    "https://www.camara.leg.br/internet/deputado/bandep/220714.jpg",
+    "https://www.camara.leg.br/internet/deputado/bandep/204379.jpg",
+    "https://www.camara.leg.br/internet/deputado/bandep/220593.jpg",
+    "https://www.camara.leg.br/internet/deputado/bandep/204436.jpg",
+  ];
+
+  return (
+    <div className="photo-strip">
+      {fotos.map((url, i) => (
+        <div key={i} className="photo-circle" style={{ animationDelay: `${i * 0.15}s` }}>
+          <img src={url} alt="" loading="lazy" />
+        </div>
+      ))}
+    </div>
   );
 }

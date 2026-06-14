@@ -21,6 +21,7 @@ import {
 export type Parlamentar = {
   id: string;
   nome: string;
+  foto_url?: string | null;
   cargo: string;
   casa: "Camara" | "Senado";
   uf: string;

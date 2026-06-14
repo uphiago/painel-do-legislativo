@@ -43,7 +43,7 @@ export function useLiveDashboard() {
         // Parliamentarians
         const { data: parlData } = await supabase
           .from("parlamentarians")
-          .select("external_id, nome, casa, uf, partido")
+          .select("external_id, nome, casa, uf, partido, foto_url")
           .order("nome")
           .limit(100);
 
@@ -152,6 +152,7 @@ async function enrichParlamentares(
   return rows.map((r, i) => ({
     id: r.external_id,
     nome: r.nome ?? `Parlamentar ${i}`,
+    foto_url: r.foto_url ?? null,
     cargo: r.casa === "senado" ? "Senador" : "Deputado Federal",
     casa: r.casa === "senado" ? "Senado" : "Camara",
     uf: r.uf ?? "BR",

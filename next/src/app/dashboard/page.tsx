@@ -345,7 +345,8 @@ export default function Home() {
                 onClick={() => setActiveId(parlamentar.id)}
                 type="button"
               >
-                <span className="avatar" aria-hidden="true">
+                <span className="avatar" aria-hidden="true"
+                      style={parlamentar.foto_url ? { backgroundImage: `url(${parlamentar.foto_url})`, backgroundSize: "cover", backgroundPosition: "center", color: "transparent" } : {}}>
                   {parlamentar.nome
                     .split(" ")
                     .slice(0, 2)
@@ -375,7 +376,8 @@ export default function Home() {
 
         <article className="profile-card">
           <div className="profile-hero">
-            <div className="profile-photo" aria-hidden="true">
+            <div className="profile-photo" aria-hidden="true"
+                 style={activeParlamentar.foto_url ? { backgroundImage: `url(${activeParlamentar.foto_url})`, backgroundSize: "cover", backgroundPosition: "center top", color: "transparent" } : {}}>
               {activeParlamentar.nome
                 .split(" ")
                 .slice(0, 2)
@@ -543,10 +545,14 @@ export default function Home() {
           </div>
 
           <div className="profile-actions">
-            <button className="secondary-button" type="button">
+            <a className="secondary-button" href={
+                activeParlamentar.casa === "Senado"
+                  ? `https://www25.senado.leg.br/web/senadores/senador/-/perfil/${activeParlamentar.id}`
+                  : `https://www.camara.leg.br/deputados/${activeParlamentar.id}`
+              } target="_blank" rel="noopener noreferrer">
               Abrir pagina publica
               <ArrowUpRight aria-hidden="true" size={16} />
-            </button>
+            </a>
             <button className="secondary-button" type="button"
                     onClick={() => { generateParlamentarPDF(activeParlamentar); show("PDF gerado!"); }}>
               Gerar relatorio PDF
