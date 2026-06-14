@@ -1,0 +1,35 @@
+next/src/app/dashboard/page.tsx
+  s_c91230ace860ac::t_c86bc7bfd1285c 529-530
+  s_c91230ace860ac::t_ec80c79ea94690 17
+backend/src/legislativo_backend/db.py
+  s_c91230ace860ac::t_e263c6c58a03f3 38
+  s_c91230ace860ac::t_75840d77af2c31 769-781
+backend/src/legislativo_backend/pipeline.py
+  s_c91230ace860ac::t_f02adf5df38815 783-852
+next/package-lock.json
+  s_c91230ace860ac::t_3d9c3cef569a5a 13,221-229,1381-1393,1415-1421,2359-2368,2520-2539,2610-2621,2637-2646,2799-2808,3497-3507,3518-3523,3902-3915,3977-3982,4507-4523,5017-5022,5063-5069,5180-5189,5243-5249,5326-5335,5653-5662,5863-5882,6225-6232
+next/package.json
+  s_c91230ace860ac::t_b690a63aafbf13 14
+next/src/data/pdfExport.ts
+  s_c91230ace860ac::t_525a78becfb08e 1-140
+backend/supabase/migrations/20260614012832_add_senado_discursos.sql
+  s_c91230ace860ac::t_941481e5ce81c4 1-24
+backend/src/legislativo_backend/cli.py
+  s_c91230ace860ac::t_711b4f8d5c4f2c 1146-1165
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "273bc43bca7a8322e19c174734352a78a95c7eae",
+  "prompts": {},
+  "sessions": {
+    "s_c91230ace860ac": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_13eb286edffeom417AdolRp7Lt",
+        "model": "deepseek-v4-flash"
+      },
+      "human_author": "uphiago <hollyvolks@hotmail.com>"
+    }
+  }
+}
