@@ -1,25 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, BarChart3, FileText, Gavel, Search, Users } from "lucide-react";
 
-async function getLandingStats() {
-  try {
-    const res = await fetch("https://xvccxrtrwgxcllofdzls.supabase.co/rest/v1/parlamentarians?select=count", {
-      headers: {
-        apikey: "sb_publishable_MlFE6CrJaUDC2nG9bd3Vtw_n-wvhSMd",
-        Authorization: "Bearer sb_publishable_MlFE6CrJaUDC2nG9bd3Vtw_n-wvhSMd",
-      },
-      next: { revalidate: 3600 },
-    });
-    const count = res.headers.get("content-range")?.split("/")[1];
-    return { parl: count ? parseInt(count) : 0 };
-  } catch {
-    return { parl: 0 };
-  }
-}
-
-export default async function Home() {
-  const stats = await getLandingStats();
-
+export default function Home() {
   return (
     <main className="landing-shell">
       <section className="landing-hero">
@@ -50,7 +32,7 @@ export default async function Home() {
           <div className="landing-stats" aria-label="Resumo">
             <article>
               <Users aria-hidden="true" size={18} />
-              <strong>{stats.parl.toLocaleString("pt-BR")}</strong>
+              <strong>594</strong>
               <span>perfis parlamentares</span>
             </article>
             <article>
