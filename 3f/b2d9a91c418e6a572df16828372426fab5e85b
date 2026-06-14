@@ -1,0 +1,19 @@
+docs/PROJECT.md
+  s_c91230ace860ac::t_3949493101a163 1-410
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "3fb2d9a91c418e6a572df16828372426fab5e85b",
+  "prompts": {},
+  "sessions": {
+    "s_c91230ace860ac": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_13eb286edffeom417AdolRp7Lt",
+        "model": "deepseek-v4-flash"
+      },
+      "human_author": "uphiago <hollyvolks@hotmail.com>"
+    }
+  }
+}
