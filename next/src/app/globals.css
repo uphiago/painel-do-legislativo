@@ -118,6 +118,8 @@ a {
   max-width: 13ch;
   font-size: clamp(2.85rem, 4vw, 4.9rem);
   line-height: 0.94;
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
 
 .landing-text {
@@ -1119,6 +1121,7 @@ h3 {
   display: grid;
   grid-template-columns: minmax(380px, 0.78fr) minmax(560px, 1.22fr);
   gap: 20px;
+  align-items: start; /* nao esticar o perfil para acompanhar a lista longa */
 }
 
 .directory-card,
@@ -1151,6 +1154,15 @@ h3 {
 
 .parlamentar-list {
   display: grid;
+  max-height: 560px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+/* Perfil acompanha a rolagem da lista no desktop */
+.dashboard-grid .profile-card {
+  position: sticky;
+  top: 16px;
 }
 
 .parlamentar-row {
@@ -1552,12 +1564,21 @@ h3 {
   }
 
   .landing-copy h1 {
-    max-width: 13ch;
+    max-width: 100%;
+    font-size: clamp(2.1rem, 9vw, 3rem);
   }
 
   .hero-main,
   .dashboard-grid {
     grid-template-columns: 1fr;
+  }
+
+  /* No mobile a lista nao deve dominar a pagina; perfil sem sticky */
+  .parlamentar-list {
+    max-height: 60vh;
+  }
+  .dashboard-grid .profile-card {
+    position: static;
   }
 
   .collector-grid,

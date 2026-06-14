@@ -71,7 +71,7 @@ export async function generateParlamentarPDF(parlamentar: {
     .limit(20);
 
   let propIds: string[] = [];
-  if (props) propIds = props.map((p: any) => p.proposition_external_id);
+  if (props) propIds = props.map((p) => p.proposition_external_id as string);
 
   y += 18;
 

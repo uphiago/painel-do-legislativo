@@ -9,7 +9,10 @@ import {
   parlamentares as mockParlamentares,
   proposicoes as mockProposicoes,
   resumoCards as mockResumoCards,
+  type Parlamentar,
+  type ProposicaoDestaque,
 } from "./mockLegislativo";
+import type { ParlamentarRow, PropositionRow } from "./types";
 
 export function useLiveDashboard() {
   const [parlamentares, setParlamentares] = useState(mockParlamentares);
@@ -119,64 +122,95 @@ export function useLiveDashboard() {
   };
 }
 
+function pluralOrgaos(n: number): string {
+  return `${n} ${n === 1 ? "órgão" : "órgãos"}`;
+}
+
+function brl(value: number): string {
+  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+type ParlamentarSel = Pick<ParlamentarRow, "external_id" | "nome" | "casa" | "uf" | "partido" | "foto_url">;
+type PropositionSel = Pick<PropositionRow, "external_id" | "sigla" | "numero" | "ano" | "ementa">;
+
 async function enrichParlamentares(
   supabase: ReturnType<typeof createClient>,
-  rows: any[],
-): Promise<any[]> {
+  rows: ParlamentarSel[],
+): Promise<Parlamentar[]> {
   if (!rows.length) return [];
 
   const ids = rows.map((r) => r.external_id);
 
-  const [propRes, orgRes] = await Promise.all([
+  const [propRes, orgRes, expRes] = await Promise.all([
     supabase
       .from("proposition_authors")
-      .select("parliamentarian_external_id")
+      .select("parliamentarian_external_id, proponent")
       .in("parliamentarian_external_id", ids)
       .eq("proposition_source", "camara"),
     supabase
       .from("organ_memberships")
       .select("parliamentarian_external_id")
       .in("parliamentarian_external_id", ids),
+    supabase
+      .from("expenses")
+      .select("parlamentar_external_id, valor")
+      .in("parlamentar_external_id", ids)
+      .limit(50000),
   ]);
 
   const propCounts: Record<string, number> = {};
+  const autoriaCounts: Record<string, number> = {};
   const orgCounts: Record<string, number> = {};
+  const expTotals: Record<string, number> = {};
 
   for (const p of propRes.data ?? []) {
-    propCounts[p.parliamentarian_external_id] = (propCounts[p.parliamentarian_external_id] ?? 0) + 1;
+    const key = p.parliamentarian_external_id as string;
+    propCounts[key] = (propCounts[key] ?? 0) + 1;
+    if (p.proponent) autoriaCounts[key] = (autoriaCounts[key] ?? 0) + 1;
   }
   for (const o of orgRes.data ?? []) {
-    orgCounts[o.parliamentarian_external_id] = (orgCounts[o.parliamentarian_external_id] ?? 0) + 1;
+    const key = o.parliamentarian_external_id as string;
+    orgCounts[key] = (orgCounts[key] ?? 0) + 1;
+  }
+  for (const e of expRes.data ?? []) {
+    const key = e.parlamentar_external_id as string;
+    expTotals[key] = (expTotals[key] ?? 0) + (e.valor ?? 0);
   }
 
-  return rows.map((r, i) => ({
-    id: r.external_id,
-    nome: r.nome ?? `Parlamentar ${i}`,
-    foto_url: r.foto_url ?? null,
-    cargo: r.casa === "senado" ? "Senador" : "Deputado Federal",
-    casa: r.casa === "senado" ? "Senado" : "Camara",
-    uf: r.uf ?? "BR",
-    partido: r.partido ?? "Sem partido",
-    mandato: "2023-2027",
-    temas: [],
-    proposicoes: propCounts[r.external_id] ?? 0,
-    autoriaPrincipal: 0,
-    despesas: "CEAP 2025",
-    presenca: `${orgCounts[r.external_id] ?? 0} órgãos`,
-    snapshotLabel: "Supabase",
-    destaque: "Perfil oficial da Câmara/Senado",
-    coletaResumo: "Dados oficiais coletados via API",
-    fontePrincipal: r.casa === "senado" ? "Senado Federal" : "Câmara dos Deputados",
-    leituraPublica: `Perfil oficial do ${r.casa === "senado" ? "Senado" : "deputado"} ${r.nome} (${r.partido}-${r.uf})`,
-    proximaAcao: "Acompanhar proposições e tramitações",
-    participacao: `${orgCounts[r.external_id] ?? 0} órgãos identificados`,
-  }));
+  return rows.map((r, i) => {
+    const orgaos = orgCounts[r.external_id] ?? 0;
+    const total = expTotals[r.external_id] ?? 0;
+    const isSenado = r.casa === "senado";
+    return {
+      id: r.external_id,
+      nome: r.nome ?? `Parlamentar ${i}`,
+      foto_url: r.foto_url ?? null,
+      cargo: isSenado ? "Senador" : "Deputado Federal",
+      casa: isSenado ? "Senado" : "Camara",
+      uf: r.uf ?? "BR",
+      partido: r.partido ?? "Sem partido",
+      mandato: "2023-2027",
+      temas: [],
+      proposicoes: propCounts[r.external_id] ?? 0,
+      autoriaPrincipal: autoriaCounts[r.external_id] ?? 0,
+      despesas: total > 0 ? brl(total) : "Sem dados",
+      despesasValor: total,
+      presenca: pluralOrgaos(orgaos),
+      snapshotLabel: "Supabase",
+      destaque: "Perfil oficial da Câmara/Senado",
+      coletaResumo: "Dados oficiais coletados via API",
+      fontePrincipal: isSenado ? "Senado Federal" : "Câmara dos Deputados",
+      leituraPublica: `Perfil oficial do ${isSenado ? "senador" : "deputado"} ${r.nome} (${r.partido}-${r.uf}).`,
+      proximaAcao: "Acompanhar proposições e tramitações em andamento.",
+      participacao: `${pluralOrgaos(orgaos)} identificado${orgaos === 1 ? "" : "s"}`,
+    };
+  });
 }
 
 async function enrichProposicoes(
   supabase: ReturnType<typeof createClient>,
-  rows: any[],
-): Promise<any[]> {
+  rows: PropositionSel[],
+): Promise<ProposicaoDestaque[]> {
   if (!rows.length) return [];
 
   const ids = rows.map((r) => r.external_id);
@@ -187,8 +221,14 @@ async function enrichProposicoes(
     .in("proposition_external_id", ids)
     .order("sequencia", { ascending: false });
 
-  const latestTrack: Record<string, any> = {};
-  for (const t of tracks ?? []) {
+  type TrackSel = {
+    proposition_external_id: string;
+    descricao_situacao: string | null;
+    orgao_sigla: string | null;
+    despacho: string | null;
+  };
+  const latestTrack: Record<string, TrackSel> = {};
+  for (const t of (tracks ?? []) as TrackSel[]) {
     if (!latestTrack[t.proposition_external_id]) {
       latestTrack[t.proposition_external_id] = t;
     }

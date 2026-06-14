@@ -10,15 +10,28 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import { useMemo, useState, useCallback, useRef } from "react";
 import { useLiveDashboard } from "@/data/liveData";
 import { createClient } from "@/utils/supabase/client";
 import { downloadCSV } from "@/data/comparacao";
 import { generateParlamentarPDF } from "@/data/pdfExport";
 import { useToast } from "@/data/toast";
+import type { BuscaProposicao, ComparacaoStats } from "@/data/types";
 
 const tabs = ["Resumo", "Projetos", "Participacao", "Transparencia", "Tramitacao"];
+const tabLabels: Record<string, string> = {
+  Resumo: "Resumo",
+  Projetos: "Projetos",
+  Participacao: "Participação",
+  Transparencia: "Transparência",
+  Tramitacao: "Tramitação",
+};
 const UFS = ["Todas","AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
+const ORDENACOES = ["Proposições", "Cota usada", "Nome"] as const;
+type Ordenacao = (typeof ORDENACOES)[number];
+
+// Limite de itens na lista "Leitura do recorte" para não criar scroll gigante.
+const RECORTE_LIMIT = 6;
 
 export default function Home() {
   const { parlamentares, resumoCards, proposicoes, despesas, citizenQuestions,
@@ -26,14 +39,15 @@ export default function Home() {
 
   const [activeId, setActiveId] = useState(parlamentares[0]?.id ?? "");
   const [activeTab, setActiveTab] = useState(tabs[0]);
-  const { toasts, show, ToastContainer } = useToast();
+  const { show, ToastContainer } = useToast();
 
   // Search state
   const [searchNome, setSearchNome] = useState("");
   const [searchTema, setSearchTema] = useState("");
   const [searchCasa, setSearchCasa] = useState("Ambas");
   const [searchUf, setSearchUf] = useState("Todas");
-  const [searchProposicoes, setSearchProposicoes] = useState<any[]>([]);
+  const [ordenacao, setOrdenacao] = useState<Ordenacao>("Proposições");
+  const [searchProposicoes, setSearchProposicoes] = useState<BuscaProposicao[]>([]);
   const [searching, setSearching] = useState(false);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -62,7 +76,7 @@ export default function Home() {
   // Comparison
   const [compareA, setCompareA] = useState<string | null>(null);
   const [compareB, setCompareB] = useState<string | null>(null);
-  const [compareData, setCompareData] = useState<any>(null);
+  const [compareData, setCompareData] = useState<{ a: ComparacaoStats; b: ComparacaoStats } | null>(null);
   const [comparing, setComparing] = useState(false);
 
   const toggleCompare = async (id: string) => {
@@ -81,7 +95,7 @@ export default function Home() {
 
   const clearCompare = () => { setCompareA(null); setCompareB(null); setCompareData(null); };
 
-  const loadStatsFn = async (supabase: ReturnType<typeof createClient>, extId: string) => {
+  const loadStatsFn = async (supabase: ReturnType<typeof createClient>, extId: string): Promise<ComparacaoStats> => {
     const [parl, propC, orgC, frtC] = await Promise.all([
       supabase.from("parlamentarians").select("nome,partido,uf").eq("external_id", extId).single(),
       supabase.from("proposition_authors").select("*", { count: "exact", head: true }).eq("parliamentarian_external_id", extId),
@@ -92,22 +106,27 @@ export default function Home() {
     return { nome: p?.nome ?? extId, partido: p?.partido ?? "?", uf: p?.uf ?? "?", proposicoes: propC.count ?? 0, orgaos: orgC.count ?? 0, frentes: frtC.count ?? 0 };
   };
 
-  // Filter parliamentarians based on search
+  // Filter + sort parliamentarians based on search controls
   const filteredParlamentares = useMemo(() => {
-    return parlamentares.filter((p) => {
+    const filtered = parlamentares.filter((p) => {
       if (searchNome && !p.nome.toLowerCase().includes(searchNome.toLowerCase())) return false;
       if (searchCasa !== "Ambas" && p.casa !== searchCasa) return false;
       if (searchUf !== "Todas" && p.uf !== searchUf) return false;
       return true;
     });
-  }, [parlamentares, searchNome, searchCasa, searchUf]);
-
-  useEffect(() => {
-    if (filteredParlamentares.length > 0 && !filteredParlamentares.find((p) => p.id === activeId)) {
-      setActiveId(filteredParlamentares[0].id);
+    const sorted = [...filtered];
+    if (ordenacao === "Proposições") {
+      sorted.sort((a, b) => b.proposicoes - a.proposicoes);
+    } else if (ordenacao === "Cota usada") {
+      sorted.sort((a, b) => (b.despesasValor ?? 0) - (a.despesasValor ?? 0));
+    } else {
+      sorted.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
     }
-  }, [filteredParlamentares, activeId]);
+    return sorted;
+  }, [parlamentares, searchNome, searchCasa, searchUf, ordenacao]);
 
+  // Seleção derivada durante o render (sem setState em effect): se o id ativo
+  // não estiver na lista filtrada, cai para o primeiro resultado.
   const activeParlamentar = useMemo(
     () => filteredParlamentares.find((item) => item.id === activeId) ?? filteredParlamentares[0],
     [activeId, filteredParlamentares],
@@ -123,7 +142,7 @@ export default function Home() {
             {loading && <span className="hero-chip" style={{background:"#d97706",marginLeft:8}}>⏳ Carregando...</span>}
             {connected && <span className="hero-chip" style={{background:"#166534",marginLeft:8}}>● Dados oficiais</span>}
           </div>
-          <p className="eyebrow">Acompanhamento publico</p>
+          <p className="eyebrow">Acompanhamento público</p>
           <h1>Atuação parlamentar em linguagem clara</h1>
           <p>
             Pesquise deputados, senadores, projetos e temas para enxergar o que
@@ -177,9 +196,9 @@ export default function Home() {
           <label className="field">
             <span>Casa</span>
             <select value={searchCasa} onChange={(e) => setSearchCasa(e.target.value)}>
-              <option>Ambas</option>
-              <option>Camara</option>
-              <option>Senado</option>
+              <option value="Ambas">Ambas</option>
+              <option value="Camara">Câmara</option>
+              <option value="Senado">Senado</option>
             </select>
           </label>
 
@@ -192,11 +211,8 @@ export default function Home() {
 
           <label className="field">
             <span>Ordenar</span>
-            <select defaultValue="Atividade">
-              <option>Atividade</option>
-              <option>Proposicoes</option>
-              <option>Presenca</option>
-              <option>Transparencia</option>
+            <select value={ordenacao} onChange={(e) => setOrdenacao(e.target.value as Ordenacao)}>
+              {ORDENACOES.map((o) => <option key={o}>{o}</option>)}
             </select>
           </label>
 
@@ -232,36 +248,6 @@ export default function Home() {
         })}
       </section>
 
-      <section className="collector-board civic-board" aria-label="Informações legislativas disponíveis">
-        <div className="section-head collector-board-head">
-          <div>
-            <p className="eyebrow">O que o painel mostra</p>
-            <h2>Leitura completa da atuação pública</h2>
-            <p>
-              A experiência pública valoriza a produção legislativa e traduz
-              informações oficiais para quem precisa acompanhar, comparar e
-              prestar contas à sociedade.
-            </p>
-          </div>
-        </div>
-
-        <div className="collector-grid">
-          {legislativeHighlights.map((item) => {
-            const Icon = item.icon;
-            return (
-              <article className="collector-card" key={item.title}>
-                <div className="collector-card-top">
-                  <Icon aria-hidden="true" size={21} />
-                  <span>{item.metric}</span>
-                </div>
-                <h3>{item.title}</h3>
-                <p>{item.description}</p>
-              </article>
-            );
-          })}
-        </div>
-      </section>
-
       <section className="data-map-grid" aria-label="Perguntas respondidas pelo painel">
         <article className="data-map-card civic-explain-card">
           <div className="section-head compact">
@@ -293,19 +279,36 @@ export default function Home() {
             </div>
           </div>
           <div className="collector-run-list">
-            {(searchTema ? searchProposicoes : proposicoes).map((item: any) => (
-              <article key={`${item.sigla}-${item.numero}`}>
-                <BarChart3 aria-hidden="true" size={18} />
-                <div>
-                  <strong>
-                    {item.sigla} {item.numero}{item.ano ? `/${item.ano}` : ""}
-                  </strong>
-                  <span>{item.status ?? item.ementa?.slice(0, 50)}</span>
-                </div>
-                <p>{item.responsavel ?? item.ementa?.slice(0, 80)}</p>
-                <small>{item.impacto ?? "Resultado da busca"}</small>
-              </article>
-            ))}
+            {(searchTema
+              ? searchProposicoes
+              : proposicoes
+            ).slice(0, RECORTE_LIMIT).map((item, idx) => {
+              const sigla = "sigla" in item ? item.sigla : undefined;
+              const numero = "numero" in item ? item.numero : undefined;
+              const ano = "ano" in item ? item.ano : undefined;
+              const ementa = "ementa" in item ? item.ementa : undefined;
+              const status = "status" in item ? item.status : undefined;
+              const responsavel = "responsavel" in item ? item.responsavel : undefined;
+              const impacto = "impacto" in item ? item.impacto : undefined;
+              return (
+                <article key={`${sigla}-${numero}-${idx}`}>
+                  <BarChart3 aria-hidden="true" size={18} />
+                  <div>
+                    <strong>
+                      {sigla} {numero}{ano ? `/${ano}` : ""}
+                    </strong>
+                    <span>{status ?? ementa?.slice(0, 50)}</span>
+                  </div>
+                  <p>{responsavel ?? ementa?.slice(0, 80)}</p>
+                  <small>{impacto ?? "Resultado da busca"}</small>
+                </article>
+              );
+            })}
+            {searchTema && !searching && searchProposicoes.length === 0 && (
+              <p style={{ padding: 12, color: "#64748b" }}>
+                Nenhuma proposição encontrada para &ldquo;{searchTema}&rdquo;.
+              </p>
+            )}
           </div>
         </article>
       </section>
@@ -315,7 +318,7 @@ export default function Home() {
           <div className="section-head">
             <div>
               <p className="eyebrow">Para acompanhar parlamentares</p>
-              <h2>Diretorio publico</h2>
+              <h2>Diretório público</h2>
             </div>
             <button className="mini-button" type="button"
                     onClick={() => { downloadCSV("parlamentares.csv", filteredParlamentares.map(p => ({
@@ -374,6 +377,7 @@ export default function Home() {
           </div>
         </aside>
 
+        {activeParlamentar ? (
         <article className="profile-card">
           <div className="profile-hero">
             <div className="profile-photo" aria-hidden="true"
@@ -394,9 +398,9 @@ export default function Home() {
                 Mandato {activeParlamentar.mandato}
               </p>
               <div className="profile-badges">
-                <span>{activeParlamentar.casa}</span>
+                <span>{activeParlamentar.casa === "Camara" ? "Câmara" : "Senado"}</span>
                 <span>{activeParlamentar.uf}</span>
-                <span>{activeParlamentar.temas[0]}</span>
+                {activeParlamentar.temas[0] && <span>{activeParlamentar.temas[0]}</span>}
                 <span>{activeParlamentar.participacao}</span>
               </div>
             </div>
@@ -405,7 +409,7 @@ export default function Home() {
           <div className="profile-kpis">
             <div>
               <strong>{activeParlamentar.proposicoes}</strong>
-              <span>proposicoes</span>
+              <span>proposições</span>
             </div>
             <div>
               <strong>{activeParlamentar.autoriaPrincipal}</strong>
@@ -417,11 +421,11 @@ export default function Home() {
             </div>
             <div>
               <strong>{activeParlamentar.presenca}</strong>
-              <span>participacao</span>
+              <span>participação</span>
             </div>
           </div>
 
-          <div className="tabs" role="tablist" aria-label="Secoes do perfil">
+          <div className="tabs" role="tablist" aria-label="Seções do perfil">
             {tabs.map((tab) => (
               <button
                 className={tab === activeTab ? "is-active" : ""}
@@ -429,7 +433,7 @@ export default function Home() {
                 onClick={() => setActiveTab(tab)}
                 type="button"
               >
-                {tab}
+                {tabLabels[tab] ?? tab}
               </button>
             ))}
           </div>
@@ -442,7 +446,7 @@ export default function Home() {
                   <p>{activeParlamentar.leituraPublica}</p>
                 </section>
                 <section className="detail-card wide evidence-card">
-                  <h3>Mensagem publica</h3>
+                  <h3>Mensagem pública</h3>
                   <p>{activeParlamentar.destaque}</p>
                 </section>
                 <section className="detail-card">
@@ -550,16 +554,54 @@ export default function Home() {
                   ? `https://www25.senado.leg.br/web/senadores/senador/-/perfil/${activeParlamentar.id}`
                   : `https://www.camara.leg.br/deputados/${activeParlamentar.id}`
               } target="_blank" rel="noopener noreferrer">
-              Abrir pagina publica
+              Abrir página pública
               <ArrowUpRight aria-hidden="true" size={16} />
             </a>
             <button className="secondary-button" type="button"
                     onClick={() => { generateParlamentarPDF(activeParlamentar); show("PDF gerado!"); }}>
-              Gerar relatorio PDF
+              Gerar relatório PDF
               <Download aria-hidden="true" size={16} />
             </button>
           </div>
         </article>
+        ) : (
+          <article className="profile-card">
+            <p style={{ padding: 24, color: "#64748b" }}>
+              Nenhum parlamentar corresponde aos filtros atuais. Ajuste a busca por
+              nome, casa ou UF para visualizar um perfil.
+            </p>
+          </article>
+        )}
+      </section>
+
+      <section className="collector-board civic-board" aria-label="Informações legislativas disponíveis">
+        <div className="section-head collector-board-head">
+          <div>
+            <p className="eyebrow">O que o painel mostra</p>
+            <h2>Leitura completa da atuação pública</h2>
+            <p>
+              A experiência pública valoriza a produção legislativa e traduz
+              informações oficiais para quem precisa acompanhar, comparar e
+              prestar contas à sociedade.
+            </p>
+          </div>
+        </div>
+
+        <div className="collector-grid">
+          {legislativeHighlights.map((item) => {
+            const Icon = item.icon;
+            return (
+              <article className="collector-card" key={item.title}>
+                <div className="collector-card-top">
+                  <Icon aria-hidden="true" size={21} />
+                  <span>{item.metric}</span>
+                </div>
+                <h3>{item.title}</h3>
+                <p>{item.description}</p>
+              </article>
+            );
+          })}
+        </div>
       </section>
 
       {compareA && compareB && (
@@ -581,17 +623,17 @@ export default function Home() {
                   <th style={{padding:8,textAlign:"center"}}>{compareData.b.nome}</th>
                 </tr></thead>
                 <tbody>
-                  {[
+                  {([
                     ["Partido", "partido"],
                     ["UF", "uf"],
                     ["Proposições", "proposicoes"],
                     ["Órgãos", "orgaos"],
                     ["Frentes", "frentes"],
-                  ].map(([label, key]) => (
+                  ] as [string, keyof ComparacaoStats][]).map(([label, key]) => (
                     <tr key={key} style={{borderBottom:"1px solid #e2e8f0"}}>
                       <td style={{padding:8,fontWeight:500}}>{label}</td>
-                      <td style={{padding:8,textAlign:"center",fontWeight:"bold",color:"#2563eb"}}>{(compareData.a as any)[key]}</td>
-                      <td style={{padding:8,textAlign:"center",fontWeight:"bold",color:"#059669"}}>{(compareData.b as any)[key]}</td>
+                      <td style={{padding:8,textAlign:"center",fontWeight:"bold",color:"#2563eb"}}>{compareData.a[key]}</td>
+                      <td style={{padding:8,textAlign:"center",fontWeight:"bold",color:"#059669"}}>{compareData.b[key]}</td>
                     </tr>
                   ))}
                 </tbody>

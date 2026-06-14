@@ -31,6 +31,7 @@ export type Parlamentar = {
   proposicoes: number;
   autoriaPrincipal: number;
   despesas: string;
+  despesasValor?: number;
   presenca: string;
   snapshotLabel: string;
   destaque: string;
@@ -186,7 +187,18 @@ export const profileSections = [
   },
 ];
 
-export const proposicoes = [
+export type ProposicaoDestaque = {
+  sigla: string;
+  numero: string;
+  ano?: number | null;
+  tema: string;
+  status: string;
+  andamento: string;
+  responsavel: string;
+  impacto: string;
+};
+
+export const proposicoes: ProposicaoDestaque[] = [
   {
     sigla: "PL",
     numero: "2546/2026",

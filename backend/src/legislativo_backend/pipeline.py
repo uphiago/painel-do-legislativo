@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import time
 from datetime import UTC, datetime
 from typing import Any
@@ -16,6 +17,8 @@ from legislativo_backend.normalizers import (
     normalize_senado_senador,
 )
 from legislativo_backend.supabase_client import SupabaseClient
+
+logger = logging.getLogger(__name__)
 
 
 def _now() -> str:
@@ -146,7 +149,12 @@ def enrich_deputado_completo(
                         supabase.upsert_expenses([r.model_dump() for r in exp_rows])
                     c["expenses"] += len(exp_rows)
             except Exception:
-                pass
+                logger.warning(
+                    "Falha ao coletar despesas do deputado %s no ano %s",
+                    deputado_id,
+                    ano,
+                    exc_info=True,
+                )
 
         payload = {
             "detail": detail,
@@ -246,15 +254,15 @@ def enrich_senador_completo(
         try:
             licencas_raw = senado.list_senador_licencas(codigo)
         except Exception:
-            pass
+            logger.debug("Licencas indisponiveis para senador %s", codigo, exc_info=True)
         try:
             profissao_raw = senado.list_senador_profissao(codigo)
         except Exception:
-            pass
+            logger.debug("Profissao indisponivel para senador %s", codigo, exc_info=True)
         try:
             academico_raw = senado.list_senador_historico_academico(codigo)
         except Exception:
-            pass
+            logger.debug("Historico academico indisponivel para senador %s", codigo, exc_info=True)
 
         processos = senado.list_processos_by_parlamentar(codigo)
         if isinstance(processos, list) and processos:
@@ -413,11 +421,11 @@ def enrich_proposicoes_senado(
             if isinstance(documentos_raw, list):
                 c["documentos"] = len(documentos_raw)
         except Exception:
-            pass
+            logger.debug("Documentos indisponiveis para processo %s", processo_id, exc_info=True)
         try:
             emendas_raw = senado.list_processo_emendas(processo_id)
         except Exception:
-            pass
+            logger.debug("Emendas indisponiveis para processo %s", processo_id, exc_info=True)
 
         database.upsert_raw_payload(
             source="senado", kind="processo-full",
@@ -475,7 +483,11 @@ def collect_bulk_complete_year(
                     try:
                         supabase.upsert_propositions(batch)
                     except Exception:
-                        pass  # continue on partial failure
+                        logger.warning(
+                            "Falha ao sincronizar batch de proposicoes com Supabase (offset %d)",
+                            i,
+                            exc_info=True,
+                        )
     except Exception as exc:
         c["errors"] += 1
         database.upsert_raw_payload(
@@ -757,7 +769,10 @@ def collect_bulk_ceap_year(
                         try:
                             supabase.upsert_expenses([r.model_dump() for r in batch])
                         except Exception:
-                            pass
+                            logger.warning(
+                                "Falha ao sincronizar batch de despesas CEAP com Supabase",
+                                exc_info=True,
+                            )
                     batch.clear()
             if batch:
                 c["expenses"] += database.upsert_expenses(batch)
@@ -765,7 +780,10 @@ def collect_bulk_ceap_year(
                     try:
                         supabase.upsert_expenses([r.model_dump() for r in batch])
                     except Exception:
-                        pass
+                        logger.warning(
+                            "Falha ao sincronizar batch final de despesas CEAP com Supabase",
+                            exc_info=True,
+                        )
         database.record_sync_run(
             job="bulk:ceap-year",
             source="camara",
@@ -838,7 +856,9 @@ def collect_discursos_senado(
                 try:
                     supabase._upsert("discursos", rows, on_conflict="senador_codigo,data_discurso")
                 except Exception:
-                    pass
+                    logger.warning(
+                        "Falha ao sincronizar discursos com Supabase", exc_info=True
+                    )
 
         except Exception:
             c["erros"] += 1

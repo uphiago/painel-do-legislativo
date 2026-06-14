@@ -6,6 +6,19 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 
+def ensure_list(value: Any) -> list:
+    """Normaliza um campo que a API ora retorna como dict, ora como lista.
+
+    As APIs do Senado (e algumas da Camara) retornam um unico item como dict
+    e multiplos itens como lista. Esta funcao garante sempre uma lista.
+    """
+    if value is None:
+        return []
+    if isinstance(value, dict):
+        return [value]
+    return value if isinstance(value, list) else []
+
+
 class ParlamentarResumo(BaseModel):
     source: str
     external_id: str

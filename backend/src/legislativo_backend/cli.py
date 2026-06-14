@@ -35,6 +35,7 @@ from legislativo_backend.collectors.senado import (
 )
 from legislativo_backend.db import LocalDatabase
 from legislativo_backend.normalizers import (
+    ensure_list,
     normalize_camara_ceap_archive_row,
     normalize_camara_deputado,
     normalize_camara_despesa,
@@ -91,10 +92,7 @@ def _safe_senadores_list(payload: dict[str, Any]) -> list[dict[str, Any]]:
     """Extrai a lista de parlamentares do payload do Senado, lidando com dict/list."""
     exercicio = payload.get("ListaParlamentarEmExercicio", {})
     parlamentares = exercicio.get("Parlamentares", {})
-    items = parlamentares.get("Parlamentar", [])
-    if isinstance(items, dict):
-        return [items]
-    return items if isinstance(items, list) else []
+    return ensure_list(parlamentares.get("Parlamentar"))
 
 
 def _echo_db_summary(database: LocalDatabase) -> None:

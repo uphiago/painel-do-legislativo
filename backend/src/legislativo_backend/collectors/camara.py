@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from legislativo_backend.http import DEFAULT_HEADERS, fetch_json
+from legislativo_backend.http import DEFAULT_HEADERS, download_retry, fetch_json
 
 BASE_URL = "https://dadosabertos.camara.leg.br/api/v2"
 
@@ -292,6 +292,7 @@ def list_proposicoes_by_tipo_and_ano(
     )
 
 
+@download_retry
 def download_proposicoes_arquivo(ano: int, formato: str = "json") -> list[dict[str, Any]]:
     """Baixa o arquivo anual completo de proposicoes do site da Camara."""
     import httpx
@@ -307,6 +308,7 @@ def download_proposicoes_arquivo(ano: int, formato: str = "json") -> list[dict[s
     return []
 
 
+@download_retry
 def download_proposicoes_temas_arquivo(ano: int, formato: str = "json") -> list[dict[str, Any]]:
     import httpx
 
@@ -319,6 +321,7 @@ def download_proposicoes_temas_arquivo(ano: int, formato: str = "json") -> list[
     return raw if isinstance(raw, list) else []
 
 
+@download_retry
 def download_proposicoes_autores_arquivo(ano: int, formato: str = "json") -> list[dict[str, Any]]:
     import httpx
 
@@ -331,6 +334,7 @@ def download_proposicoes_autores_arquivo(ano: int, formato: str = "json") -> lis
     return raw if isinstance(raw, list) else []
 
 
+@download_retry
 def download_ceap_csv_stream(ano: int) -> list[dict[str, Any]]:
     """Baixa e parseia o CSV ZIP da CEAP de um ano diretamente em memoria."""
     import csv

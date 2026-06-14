@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight, BarChart3, FileText, Gavel, Search, Users } from "lucide-react";
 
 export default function Home() {
@@ -117,7 +118,7 @@ function PhotoStrip() {
     <div className="photo-strip">
       {fotos.map((url, i) => (
         <div key={i} className="photo-circle" style={{ animationDelay: `${i * 0.15}s` }}>
-          <img src={url} alt="" loading="lazy" />
+          <Image src={url} alt="" width={48} height={64} unoptimized />
         </div>
       ))}
     </div>

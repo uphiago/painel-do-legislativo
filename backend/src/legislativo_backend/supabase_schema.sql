@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS expenses (
   id BIGSERIAL PRIMARY KEY,
   source TEXT NOT NULL,
   external_id TEXT NOT NULL,
-  parliamentarian_external_id TEXT,
+  parlamentar_external_id TEXT,
   parlamentar_nome TEXT,
   ano INTEGER,
   mes INTEGER,
@@ -212,7 +212,7 @@ CREATE INDEX IF NOT EXISTS idx_parlamentarians_house ON parlamentarians(casa);
 CREATE INDEX IF NOT EXISTS idx_propositions_house ON propositions(casa);
 CREATE INDEX IF NOT EXISTS idx_propositions_year ON propositions(ano);
 CREATE INDEX IF NOT EXISTS idx_propositions_sigla ON propositions(sigla);
-CREATE INDEX IF NOT EXISTS idx_expenses_parliamentarian ON expenses(parliamentarian_external_id);
+CREATE INDEX IF NOT EXISTS idx_expenses_parliamentarian ON expenses(parlamentar_external_id);
 CREATE INDEX IF NOT EXISTS idx_expenses_year_month ON expenses(ano, mes);
 CREATE INDEX IF NOT EXISTS idx_organ_memberships_parlamentarian ON organ_memberships(parliamentarian_external_id);
 CREATE INDEX IF NOT EXISTS idx_proposition_authors_proposition ON proposition_authors(proposition_external_id);
