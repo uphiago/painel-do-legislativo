@@ -145,7 +145,7 @@ export default function Home() {
     fetchParlamentarDetalhe(supabase, activeExtId)
       .then((d) => { if (!cancelled) setDetalhe({ forId: activeExtId, data: d }); })
       .catch(() => {
-        if (!cancelled) setDetalhe({ forId: activeExtId, data: { proposicoes: [], temas: [], despesas: [] } });
+        if (!cancelled) setDetalhe({ forId: activeExtId, data: { proposicoes: [], temas: [], despesas: [], kpis: { proposicoes: 0, autoria: 0, orgaos: 0, despesaTotal: 0 } } });
       });
     return () => { cancelled = true; };
   }, [activeExtId]);
@@ -155,6 +155,17 @@ export default function Home() {
   const perfilProps = detalheReady ? detalhe!.data.proposicoes : [];
   const perfilTemas = detalheReady ? detalhe!.data.temas : [];
   const perfilDespesas = detalheReady ? detalhe!.data.despesas : [];
+
+  // KPIs exatos do perfil (consistentes com diretorio e comparacao). Enquanto
+  // o detalhe carrega, usa o valor aproximado do diretorio como fallback.
+  const k = detalhe?.data.kpis;
+  const kpiProps = detalheReady && k ? k.proposicoes : (activeParlamentar?.proposicoes ?? 0);
+  const kpiAutoria = detalheReady && k ? k.autoria : (activeParlamentar?.autoriaPrincipal ?? 0);
+  const kpiOrgaos = detalheReady && k ? k.orgaos : 0;
+  const kpiCota = detalheReady && k
+    ? (k.despesaTotal > 0 ? k.despesaTotal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "Sem dados")
+    : (activeParlamentar?.despesas ?? "—");
+  const kpiOrgaosLabel = `${kpiOrgaos} ${kpiOrgaos === 1 ? "órgão" : "órgãos"}`;
 
   return (
     <>
@@ -432,19 +443,19 @@ export default function Home() {
 
           <div className="profile-kpis">
             <div>
-              <strong>{activeParlamentar.proposicoes}</strong>
+              <strong>{kpiProps}</strong>
               <span>proposições</span>
             </div>
             <div>
-              <strong>{activeParlamentar.autoriaPrincipal}</strong>
+              <strong>{kpiAutoria}</strong>
               <span>como autor</span>
             </div>
             <div>
-              <strong>{activeParlamentar.despesas}</strong>
+              <strong>{kpiCota}</strong>
               <span>cota usada</span>
             </div>
             <div>
-              <strong>{activeParlamentar.presenca}</strong>
+              <strong>{kpiOrgaosLabel}</strong>
               <span>participação</span>
             </div>
           </div>

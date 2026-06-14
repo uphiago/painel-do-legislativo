@@ -141,16 +141,25 @@ async function enrichParlamentares(
 
   const ids = rows.map((r) => r.external_id);
 
-  const [propRes, orgRes, expRes] = await Promise.all([
-    supabase
-      .from("proposition_authors")
-      .select("parliamentarian_external_id, proponent")
-      .in("parliamentarian_external_id", ids)
-      .eq("proposition_source", "camara"),
-    supabase
-      .from("organ_memberships")
-      .select("parliamentarian_external_id")
-      .in("parliamentarian_external_id", ids),
+  // Contagens EXATAS por parlamentar (head-count). Evita o bug do fetch em
+  // lote, que era truncado no limite default de 1000 linhas do PostgREST e
+  // subcontava autores prolificos (ex.: 272 em vez de 2235). ~1.6s para 100.
+  const [countsList, expRes] = await Promise.all([
+    Promise.all(
+      rows.map(async (r) => {
+        const [pc, oc] = await Promise.all([
+          supabase
+            .from("proposition_authors")
+            .select("*", { count: "exact", head: true })
+            .eq("parliamentarian_external_id", r.external_id),
+          supabase
+            .from("organ_memberships")
+            .select("*", { count: "exact", head: true })
+            .eq("parliamentarian_external_id", r.external_id),
+        ]);
+        return { id: r.external_id, prop: pc.count ?? 0, org: oc.count ?? 0 };
+      }),
+    ),
     supabase
       .from("expenses")
       .select("parlamentar_external_id, valor")
@@ -159,18 +168,12 @@ async function enrichParlamentares(
   ]);
 
   const propCounts: Record<string, number> = {};
-  const autoriaCounts: Record<string, number> = {};
   const orgCounts: Record<string, number> = {};
   const expTotals: Record<string, number> = {};
 
-  for (const p of propRes.data ?? []) {
-    const key = p.parliamentarian_external_id as string;
-    propCounts[key] = (propCounts[key] ?? 0) + 1;
-    if (p.proponent) autoriaCounts[key] = (autoriaCounts[key] ?? 0) + 1;
-  }
-  for (const o of orgRes.data ?? []) {
-    const key = o.parliamentarian_external_id as string;
-    orgCounts[key] = (orgCounts[key] ?? 0) + 1;
+  for (const c of countsList) {
+    propCounts[c.id] = c.prop;
+    orgCounts[c.id] = c.org;
   }
   for (const e of expRes.data ?? []) {
     const key = e.parlamentar_external_id as string;
@@ -192,7 +195,7 @@ async function enrichParlamentares(
       mandato: "2023-2027",
       temas: [],
       proposicoes: propCounts[r.external_id] ?? 0,
-      autoriaPrincipal: autoriaCounts[r.external_id] ?? 0,
+      autoriaPrincipal: 0, // contagem exata de autoria principal vem no detalhe do perfil
       despesas: total > 0 ? brl(total) : "Sem dados",
       despesasValor: total,
       presenca: pluralOrgaos(orgaos),
@@ -252,10 +255,18 @@ export interface DespesaCategoria {
   percentual: number;
 }
 
+export interface ParlamentarKpis {
+  proposicoes: number;
+  autoria: number;
+  orgaos: number;
+  despesaTotal: number;
+}
+
 export interface ParlamentarDetalhe {
   proposicoes: ProposicaoDestaque[];
   temas: string[];
   despesas: DespesaCategoria[];
+  kpis: ParlamentarKpis;
 }
 
 // Busca os dados REAIS de um parlamentar selecionado (proposicoes de autoria,
@@ -264,11 +275,14 @@ export async function fetchParlamentarDetalhe(
   supabase: ReturnType<typeof createClient>,
   externalId: string,
 ): Promise<ParlamentarDetalhe> {
-  const { data: auth } = await supabase
-    .from("proposition_authors")
-    .select("proposition_external_id")
-    .eq("parliamentarian_external_id", externalId)
-    .limit(400);
+  // KPIs exatos via head-count (mesma base da comparacao).
+  const [propCountRes, autoriaCountRes, orgCountRes, authList] = await Promise.all([
+    supabase.from("proposition_authors").select("*", { count: "exact", head: true }).eq("parliamentarian_external_id", externalId),
+    supabase.from("proposition_authors").select("*", { count: "exact", head: true }).eq("parliamentarian_external_id", externalId).eq("proponent", true),
+    supabase.from("organ_memberships").select("*", { count: "exact", head: true }).eq("parliamentarian_external_id", externalId),
+    supabase.from("proposition_authors").select("proposition_external_id").eq("parliamentarian_external_id", externalId).limit(400),
+  ]);
+  const auth = authList.data;
 
   const ids = [...new Set((auth ?? []).map((a) => a.proposition_external_id as string))].slice(0, 200);
 
@@ -307,17 +321,27 @@ export async function fetchParlamentarDetalhe(
     .limit(5000);
 
   const grouped: Record<string, number> = {};
+  let despesaTotal = 0;
   for (const e of exp ?? []) {
     const cat = (e.categoria as string | null) ?? "Outros";
-    grouped[cat] = (grouped[cat] ?? 0) + ((e.valor as number) ?? 0);
+    const v = (e.valor as number) ?? 0;
+    grouped[cat] = (grouped[cat] ?? 0) + v;
+    despesaTotal += v;
   }
   const sorted = Object.entries(grouped).sort(([, a], [, b]) => b - a).slice(0, 5);
-  const total = sorted.reduce((s, [, v]) => s + v, 0) || 1;
+  const maxCat = sorted.length ? sorted[0][1] : 1;
   const despesas: DespesaCategoria[] = sorted.map(([categoria, valor]) => ({
     categoria,
     valor: brl(valor),
-    percentual: Math.round((valor / total) * 100),
+    percentual: Math.round((valor / maxCat) * 100),
   }));
 
-  return { proposicoes, temas, despesas };
+  const kpis: ParlamentarKpis = {
+    proposicoes: propCountRes.count ?? 0,
+    autoria: autoriaCountRes.count ?? 0,
+    orgaos: orgCountRes.count ?? 0,
+    despesaTotal,
+  };
+
+  return { proposicoes, temas, despesas, kpis };
 }
