@@ -1,0 +1,30 @@
+next/src/app/page.tsx
+  s_c91230ace860ac::t_c742d0f5405f27 2-21,29,35-37,45-47,50-65,73,78,81-82,86-90,93-98,100-111,121-141
+next/src/data/liveData.ts
+  s_c91230ace860ac::t_b6d08ea09013c2 46
+  s_c91230ace860ac::t_1a9f88c7143eee 155
+next/src/app/globals.css
+  s_c91230ace860ac::t_b2ae5735274d26 199-259
+next/src/app/dashboard/page.tsx
+  s_c91230ace860ac::t_74aab299e25668 348-349
+  s_c91230ace860ac::t_2c1b628a60468f 379-380
+  s_c91230ace860ac::t_a5537468f9fcfd 548-552,555
+next/src/data/mockLegislativo.ts
+  s_c91230ace860ac::t_ef5ce3a7bf340e 24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "adf3d39fc213b28a771267c1a53dfd8654ffc51f",
+  "prompts": {},
+  "sessions": {
+    "s_c91230ace860ac": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_13eb286edffeom417AdolRp7Lt",
+        "model": "deepseek-v4-flash"
+      },
+      "human_author": "uphiago <hollyvolks@hotmail.com>"
+    }
+  }
+}
