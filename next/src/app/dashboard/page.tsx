@@ -10,8 +10,8 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState, useCallback, useRef } from "react";
-import { useLiveDashboard } from "@/data/liveData";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import { useLiveDashboard, fetchParlamentarDetalhe, type ParlamentarDetalhe } from "@/data/liveData";
 import { createClient } from "@/utils/supabase/client";
 import { downloadCSV } from "@/data/comparacao";
 import { generateParlamentarPDF } from "@/data/pdfExport";
@@ -34,7 +34,7 @@ type Ordenacao = (typeof ORDENACOES)[number];
 const RECORTE_LIMIT = 6;
 
 export default function Home() {
-  const { parlamentares, resumoCards, proposicoes, despesas, citizenQuestions,
+  const { parlamentares, resumoCards, proposicoes, citizenQuestions,
           legislativeHighlights, connected, loading } = useLiveDashboard();
 
   const [activeId, setActiveId] = useState(parlamentares[0]?.id ?? "");
@@ -132,6 +132,30 @@ export default function Home() {
     [activeId, filteredParlamentares],
   );
 
+  // Detalhe real do parlamentar selecionado (proposicoes, temas, despesas).
+  // Guardamos junto o id ao qual o detalhe pertence, para derivar "loading"
+  // sem precisar de setState sincrono dentro do effect.
+  const [detalhe, setDetalhe] = useState<{ forId: string; data: ParlamentarDetalhe } | null>(null);
+  const activeExtId = activeParlamentar?.id;
+
+  useEffect(() => {
+    if (!activeExtId) return;
+    let cancelled = false;
+    const supabase = createClient();
+    fetchParlamentarDetalhe(supabase, activeExtId)
+      .then((d) => { if (!cancelled) setDetalhe({ forId: activeExtId, data: d }); })
+      .catch(() => {
+        if (!cancelled) setDetalhe({ forId: activeExtId, data: { proposicoes: [], temas: [], despesas: [] } });
+      });
+    return () => { cancelled = true; };
+  }, [activeExtId]);
+
+  const detalheReady = !!activeExtId && detalhe?.forId === activeExtId;
+  const detalheLoading = !detalheReady;
+  const perfilProps = detalheReady ? detalhe!.data.proposicoes : [];
+  const perfilTemas = detalheReady ? detalhe!.data.temas : [];
+  const perfilDespesas = detalheReady ? detalhe!.data.despesas : [];
+
   return (
     <>
     <main className="page-shell">
@@ -223,7 +247,7 @@ export default function Home() {
         </div>
 
         <div className="quick-pills">
-          {["Segurança pública", "Saúde", "Educação", "Meio ambiente", "Frentes", "Tramitação"].map(
+          {["Segurança pública", "Saúde", "Educação", "Meio ambiente", "Economia", "Direitos"].map(
             (item) => (
               <button className="quick-pill" type="button" key={item}
                       onClick={() => { setSearchTema(item); buscarTema(item); }}>
@@ -400,7 +424,7 @@ export default function Home() {
               <div className="profile-badges">
                 <span>{activeParlamentar.casa === "Camara" ? "Câmara" : "Senado"}</span>
                 <span>{activeParlamentar.uf}</span>
-                {activeParlamentar.temas[0] && <span>{activeParlamentar.temas[0]}</span>}
+                {perfilTemas[0] && <span>{perfilTemas[0]}</span>}
                 <span>{activeParlamentar.participacao}</span>
               </div>
             </div>
@@ -442,7 +466,7 @@ export default function Home() {
             {activeTab === "Resumo" && (
               <>
                 <section className="detail-card wide">
-                  <h3>Leitura rapida</h3>
+                  <h3>Leitura rápida</h3>
                   <p>{activeParlamentar.leituraPublica}</p>
                 </section>
                 <section className="detail-card wide evidence-card">
@@ -451,11 +475,17 @@ export default function Home() {
                 </section>
                 <section className="detail-card">
                   <h3>Temas recorrentes</h3>
-                  <div className="tag-list">
-                    {activeParlamentar.temas.map((tema) => (
-                      <span key={tema}>{tema}</span>
-            ))}
-          </div>
+                  {perfilTemas.length > 0 ? (
+                    <div className="tag-list">
+                      {perfilTemas.map((tema) => (
+                        <span key={tema}>{tema}</span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="muted-note">
+                      {detalheLoading ? "Carregando temas…" : "Sem temas classificados para este parlamentar."}
+                    </p>
+                  )}
                 </section>
                 <section className="detail-card">
                   <h3>O que observar</h3>
@@ -466,19 +496,25 @@ export default function Home() {
 
             {activeTab === "Projetos" && (
               <section className="detail-card wide">
-                <h3>Projetos em destaque</h3>
-                <div className="proposal-list">
-                  {proposicoes.map((proposicao) => (
-                    <article key={`${proposicao.sigla}-${proposicao.numero}`}>
-                      <strong>
-                        {proposicao.sigla} {proposicao.numero}
-                      </strong>
-                      <span>{proposicao.tema}</span>
-                      <p>{proposicao.andamento}</p>
-                      <small>{proposicao.responsavel}</small>
-                    </article>
-                  ))}
-                </div>
+                <h3>Proposições de autoria</h3>
+                {detalheLoading ? (
+                  <p className="muted-note">Carregando proposições…</p>
+                ) : perfilProps.length > 0 ? (
+                  <div className="proposal-list">
+                    {perfilProps.slice(0, 12).map((proposicao, i) => (
+                      <article key={`${proposicao.sigla}-${proposicao.numero}-${i}`}>
+                        <strong>
+                          {proposicao.sigla} {proposicao.numero}{proposicao.ano ? `/${proposicao.ano}` : ""}
+                        </strong>
+                        <span>{proposicao.tema}</span>
+                        <p>{proposicao.andamento}</p>
+                        <small>{proposicao.responsavel}</small>
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="muted-note">Nenhuma proposição de autoria encontrada para este parlamentar.</p>
+                )}
               </section>
             )}
 
@@ -490,14 +526,14 @@ export default function Home() {
                     <strong>Participação institucional</strong>
                     <span>{activeParlamentar.participacao}</span>
                     <p>
-                      A página pública pode mostrar onde o parlamentar trabalha,
-                      quais colegiados acompanha e quais frentes parlamentares
-                      dialogam com seus temas prioritários.
+                      A página pública mostra onde o parlamentar trabalha, quais
+                      colegiados acompanha e quais frentes parlamentares dialogam
+                      com seus temas prioritários.
                     </p>
                   </article>
                   <article>
                     <strong>Temas de atuação</strong>
-                    <span>{activeParlamentar.temas.join(", ")}</span>
+                    <span>{perfilTemas.length > 0 ? perfilTemas.join(", ") : "Sem temas classificados"}</span>
                     <p>
                       O recorte por tema ajuda gabinetes e cidadãos a apresentar
                       produção legislativa sem depender de linguagem técnica.
@@ -509,41 +545,52 @@ export default function Home() {
 
             {activeTab === "Transparencia" && (
               <section className="detail-card wide">
-                <h3>Transparência da atividade parlamentar</h3>
-                <div className="expense-list">
-                  {despesas.map((item) => (
-                    <div className="expense-row" key={item.categoria}>
-                      <div>
-                        <strong>{item.categoria}</strong>
-                        <span>{item.valor}</span>
+                <h3>Despesas (CEAP) por categoria</h3>
+                {detalheLoading ? (
+                  <p className="muted-note">Carregando despesas…</p>
+                ) : perfilDespesas.length > 0 ? (
+                  <div className="expense-list">
+                    {perfilDespesas.map((item) => (
+                      <div className="expense-row" key={item.categoria}>
+                        <div>
+                          <strong>{item.categoria}</strong>
+                          <span>{item.valor}</span>
+                        </div>
+                        <div className="bar-track">
+                          <span style={{ width: `${item.percentual}%` }} />
+                        </div>
                       </div>
-                      <div className="bar-track">
-                        <span style={{ width: `${item.percentual}%` }} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="muted-note">Sem despesas CEAP registradas para este parlamentar no período coletado.</p>
+                )}
               </section>
             )}
 
             {activeTab === "Tramitacao" && (
               <section className="detail-card wide">
-                <h3>O que falta acontecer</h3>
-                <div className="timeline-list">
-                  {proposicoes.map((proposicao) => (
-                    <article key={proposicao.numero}>
-                      <BarChart3 aria-hidden="true" size={18} />
-                      <div>
-                        <strong>
-                          {proposicao.sigla} {proposicao.numero} -{" "}
-                          {proposicao.status}
-                        </strong>
-                        <p>{proposicao.andamento}</p>
-                        <small>{proposicao.responsavel}</small>
-                      </div>
-                    </article>
-                  ))}
-                </div>
+                <h3>Tramitação das proposições</h3>
+                {detalheLoading ? (
+                  <p className="muted-note">Carregando tramitação…</p>
+                ) : perfilProps.length > 0 ? (
+                  <div className="timeline-list">
+                    {perfilProps.slice(0, 12).map((proposicao, i) => (
+                      <article key={`${proposicao.numero}-${i}`}>
+                        <BarChart3 aria-hidden="true" size={18} />
+                        <div>
+                          <strong>
+                            {proposicao.sigla} {proposicao.numero} — {proposicao.status}
+                          </strong>
+                          <p>{proposicao.andamento}</p>
+                          <small>{proposicao.responsavel}</small>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="muted-note">Sem proposições com tramitação registrada para este parlamentar.</p>
+                )}
               </section>
             )}
           </div>

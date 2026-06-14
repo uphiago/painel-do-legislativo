@@ -1159,6 +1159,12 @@ h3 {
   scrollbar-width: thin;
 }
 
+.muted-note {
+  padding: 14px 0;
+  color: var(--muted, #64748b);
+  font-size: 0.92rem;
+}
+
 /* Perfil acompanha a rolagem da lista no desktop */
 .dashboard-grid .profile-card {
   position: sticky;

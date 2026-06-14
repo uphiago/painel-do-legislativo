@@ -245,3 +245,79 @@ async function enrichProposicoes(
     impacto: "Acompanhamento público disponível",
   }));
 }
+
+export interface DespesaCategoria {
+  categoria: string;
+  valor: string;
+  percentual: number;
+}
+
+export interface ParlamentarDetalhe {
+  proposicoes: ProposicaoDestaque[];
+  temas: string[];
+  despesas: DespesaCategoria[];
+}
+
+// Busca os dados REAIS de um parlamentar selecionado (proposicoes de autoria,
+// temas mais frequentes e despesas por categoria). Usado ao trocar de perfil.
+export async function fetchParlamentarDetalhe(
+  supabase: ReturnType<typeof createClient>,
+  externalId: string,
+): Promise<ParlamentarDetalhe> {
+  const { data: auth } = await supabase
+    .from("proposition_authors")
+    .select("proposition_external_id")
+    .eq("parliamentarian_external_id", externalId)
+    .limit(400);
+
+  const ids = [...new Set((auth ?? []).map((a) => a.proposition_external_id as string))].slice(0, 200);
+
+  let proposicoes: ProposicaoDestaque[] = [];
+  let temas: string[] = [];
+
+  if (ids.length) {
+    const { data: props } = await supabase
+      .from("propositions")
+      .select("external_id, sigla, numero, ano, ementa")
+      .in("external_id", ids)
+      .order("ano", { ascending: false })
+      .limit(40);
+    if (props?.length) proposicoes = await enrichProposicoes(supabase, props);
+
+    const { data: th } = await supabase
+      .from("proposition_themes")
+      .select("theme_name")
+      .in("proposition_external_id", ids)
+      .limit(800);
+    const counts: Record<string, number> = {};
+    for (const t of th ?? []) {
+      const name = t.theme_name as string | null;
+      if (name) counts[name] = (counts[name] ?? 0) + 1;
+    }
+    temas = Object.entries(counts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 6)
+      .map(([k]) => k);
+  }
+
+  const { data: exp } = await supabase
+    .from("expenses")
+    .select("categoria, valor")
+    .eq("parlamentar_external_id", externalId)
+    .limit(5000);
+
+  const grouped: Record<string, number> = {};
+  for (const e of exp ?? []) {
+    const cat = (e.categoria as string | null) ?? "Outros";
+    grouped[cat] = (grouped[cat] ?? 0) + ((e.valor as number) ?? 0);
+  }
+  const sorted = Object.entries(grouped).sort(([, a], [, b]) => b - a).slice(0, 5);
+  const total = sorted.reduce((s, [, v]) => s + v, 0) || 1;
+  const despesas: DespesaCategoria[] = sorted.map(([categoria, valor]) => ({
+    categoria,
+    valor: brl(valor),
+    percentual: Math.round((valor / total) * 100),
+  }));
+
+  return { proposicoes, temas, despesas };
+}
