@@ -10,11 +10,12 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useLiveDashboard } from "@/data/liveData";
 import { createClient } from "@/utils/supabase/client";
 import { downloadCSV } from "@/data/comparacao";
 import { generateParlamentarPDF } from "@/data/pdfExport";
+import { useToast } from "@/data/toast";
 
 const tabs = ["Resumo", "Projetos", "Participacao", "Transparencia", "Tramitacao"];
 const UFS = ["Todas","AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
@@ -25,6 +26,7 @@ export default function Home() {
 
   const [activeId, setActiveId] = useState(parlamentares[0]?.id ?? "");
   const [activeTab, setActiveTab] = useState(tabs[0]);
+  const { toasts, show, ToastContainer } = useToast();
 
   // Search state
   const [searchNome, setSearchNome] = useState("");
@@ -33,6 +35,29 @@ export default function Home() {
   const [searchUf, setSearchUf] = useState("Todas");
   const [searchProposicoes, setSearchProposicoes] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  const buscarTema = useCallback(async (tema: string) => {
+    if (!tema || tema.length < 2) return;
+    setSearching(true);
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("propositions")
+      .select("external_id, sigla, numero, ano, ementa")
+      .ilike("ementa", `%${tema}%`)
+      .order("ano", { ascending: false })
+      .limit(20);
+    setSearchProposicoes(data ?? []);
+    setSearching(false);
+  }, []);
+
+  const handleTemaInput = (val: string) => {
+    setSearchTema(val);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (val.length >= 2) {
+      debounceRef.current = setTimeout(() => buscarTema(val), 400);
+    }
+  };
 
   // Comparison
   const [compareA, setCompareA] = useState<string | null>(null);
@@ -67,20 +92,6 @@ export default function Home() {
     return { nome: p?.nome ?? extId, partido: p?.partido ?? "?", uf: p?.uf ?? "?", proposicoes: propC.count ?? 0, orgaos: orgC.count ?? 0, frentes: frtC.count ?? 0 };
   };
 
-  const buscarTema = useCallback(async (tema: string) => {
-    if (!tema) return;
-    setSearching(true);
-    const supabase = createClient();
-    const { data } = await supabase
-      .from("propositions")
-      .select("external_id, sigla, numero, ano, ementa")
-      .ilike("ementa", `%${tema}%`)
-      .order("ano", { ascending: false })
-      .limit(20);
-    setSearchProposicoes(data ?? []);
-    setSearching(false);
-  }, []);
-
   // Filter parliamentarians based on search
   const filteredParlamentares = useMemo(() => {
     return parlamentares.filter((p) => {
@@ -103,6 +114,7 @@ export default function Home() {
   );
 
   return (
+    <>
     <main className="page-shell">
       <header className="dashboard-header">
         <div>
@@ -157,7 +169,7 @@ export default function Home() {
             <div className="input-shell">
               <Filter aria-hidden="true" size={18} />
               <input placeholder="Ex.: segurança pública, saúde, educação..."
-                     value={searchTema} onChange={(e) => setSearchTema(e.target.value)}
+                     value={searchTema} onChange={(e) => handleTemaInput(e.target.value)}
                      onKeyDown={(e) => e.key === "Enter" && buscarTema(searchTema)} />
             </div>
           </label>
@@ -306,16 +318,25 @@ export default function Home() {
               <h2>Diretorio publico</h2>
             </div>
             <button className="mini-button" type="button"
-                    onClick={() => downloadCSV("parlamentares.csv", filteredParlamentares.map(p => ({
+                    onClick={() => { downloadCSV("parlamentares.csv", filteredParlamentares.map(p => ({
                       nome: p.nome, cargo: p.cargo, partido: p.partido, uf: p.uf, proposicoes: p.proposicoes, participacao: p.participacao
-                    })))}>
+                    }))); show("CSV exportado!"); }}>
               <Download aria-hidden="true" size={16} />
               CSV
             </button>
           </div>
 
           <div className="parlamentar-list">
-            {filteredParlamentares.map((parlamentar) => (
+            {loading && !connected ? (
+              [...Array(5)].map((_, i) => (
+                <div className="skeleton-row" key={i}>
+                  <div className="skeleton skeleton-avatar" />
+                  <div className="skeleton skeleton-text" style={{width:"60%"}} />
+                  <div className="skeleton skeleton-metric" />
+                </div>
+              ))
+            ) : (
+              filteredParlamentares.map((parlamentar) => (
               <button
                 className={`parlamentar-row ${
                   parlamentar.id === activeParlamentar.id ? "is-active" : ""
@@ -348,7 +369,7 @@ export default function Home() {
                   {compareA === parlamentar.id ? "❶" : compareB === parlamentar.id ? "❷" : "⇆"}
                 </span>
               </button>
-            ))}
+            )))}
           </div>
         </aside>
 
@@ -427,8 +448,8 @@ export default function Home() {
                   <div className="tag-list">
                     {activeParlamentar.temas.map((tema) => (
                       <span key={tema}>{tema}</span>
-                    ))}
-                  </div>
+            ))}
+          </div>
                 </section>
                 <section className="detail-card">
                   <h3>O que observar</h3>
@@ -527,7 +548,7 @@ export default function Home() {
               <ArrowUpRight aria-hidden="true" size={16} />
             </button>
             <button className="secondary-button" type="button"
-                    onClick={() => generateParlamentarPDF(activeParlamentar)}>
+                    onClick={() => { generateParlamentarPDF(activeParlamentar); show("PDF gerado!"); }}>
               Gerar relatorio PDF
               <Download aria-hidden="true" size={16} />
             </button>
@@ -575,5 +596,7 @@ export default function Home() {
       )}
 
     </main>
+      {ToastContainer}
+    </>
   );
 }
