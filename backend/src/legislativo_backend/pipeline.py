@@ -799,11 +799,12 @@ def collect_discursos_senado(
         codigo = int(s["external_id"])
         try:
             discursos_raw = senado.list_senador_discursos(codigo, data_inicio, data_fim)
-            discursos_lista = discursos_raw.get("DiscursosParlamentar", {}).get("Parlamentar", {}).get("Discursos", {}).get("Discurso", [])
+            parlamentar_data = discursos_raw.get("DiscursosParlamentar", {}).get("Parlamentar", {})
+            discursos_lista = parlamentar_data.get("Pronunciamentos", {}).get("Pronunciamento", [])
+            if discursos_lista is None:
+                discursos_lista = []
             if isinstance(discursos_lista, dict):
                 discursos_lista = [discursos_lista]
-            if not isinstance(discursos_lista, list):
-                discursos_lista = []
 
             rows: list[dict[str, Any]] = []
             for d in discursos_lista:
