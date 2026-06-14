@@ -11,3 +11,4 @@ backend/**/__pycache__/
 next/.next/
 next/node_modules/
 backend/supabase/.temp/
+.vercel
