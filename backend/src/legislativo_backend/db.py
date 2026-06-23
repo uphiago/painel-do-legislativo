@@ -35,7 +35,7 @@ class LocalDatabase:
             "parties", "legislatures", "organs", "parliamentarian_mandates",
             "organ_memberships", "parliamentary_fronts", "front_memberships",
             "proposition_types", "proposition_authors", "proposition_themes",
-            "proposition_trackings", "discursos",
+            "proposition_trackings", "discursos", "votos",
         ]
         with self.connect() as connection:
             return {
@@ -788,4 +788,16 @@ CREATE TABLE IF NOT EXISTS discursos (
   updated_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_discursos_senador ON discursos(senador_codigo);
+
+CREATE TABLE IF NOT EXISTS votos (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  votacao_external_id TEXT NOT NULL,
+  source TEXT NOT NULL,
+  parlamentar_external_id TEXT NOT NULL,
+  parlamentar_nome TEXT,
+  voto TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE(votacao_external_id, source, parlamentar_external_id)
+);
+CREATE INDEX IF NOT EXISTS idx_votos_parlamentar ON votos(parlamentar_external_id);
 """

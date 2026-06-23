@@ -170,3 +170,9 @@ class SupabaseClient:
 
     def upsert_discursos(self, rows: list[dict[str, Any]]) -> int:
         return self._upsert("discursos", rows, on_conflict="senador_codigo,data_discurso")
+
+    def upsert_votacoes(self, rows: list[dict[str, Any]]) -> int:
+        return self._upsert("votacoes", rows, on_conflict="source,external_id")
+
+    def upsert_votos(self, rows: list[dict[str, Any]]) -> int:
+        return self._upsert("votos", rows, on_conflict="votacao_external_id,source,parlamentar_external_id")

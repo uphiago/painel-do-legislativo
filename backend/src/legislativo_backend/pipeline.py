@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import UTC, datetime
 from typing import Any
 
@@ -19,6 +20,8 @@ from legislativo_backend.normalizers import (
 from legislativo_backend.supabase_client import SupabaseClient
 
 logger = logging.getLogger(__name__)
+
+MAX_PARALLEL = 4  # Workers paralelos (respeita rate-limiter que e thread-safe)
 
 
 def _now() -> str:
@@ -628,21 +631,40 @@ def enrich_deputados(
     limit: int = 10,
     offset: int = 0,
     anos_despesas: list[int] | None = None,
+    parallel: bool = False,
 ) -> dict[str, Any]:
     """Wrapper que chama enrich_deputado_completo para lote de deputados."""
     totals: dict[str, int] = {}
     parlamentares = database.list_parliamentarians(source="camara", limit=limit, offset=offset)
     enriched = database.get_enriched_parliamentarian_ids("camara")
-    for p in parlamentares:
-        if p["external_id"] in enriched:
-            totals.setdefault("skipped", 0)
-            totals["skipped"] += 1
-            continue
-        did = int(p["external_id"])
-        result = enrich_deputado_completo(database, did, supabase, anos_despesas)
-        for k, v in result.items():
-            totals[k] = totals.get(k, 0) + v
-    totals["profiles"] = len(parlamentares) - totals.get("errors", 0) - totals.get("skipped", 0)
+    pending = [(int(p["external_id"]), p["nome"]) for p in parlamentares if p["external_id"] not in enriched]
+    skipped = len(parlamentares) - len(pending)
+    totals["skipped"] = skipped
+
+    if not pending:
+        totals["profiles"] = 0
+        return totals
+
+    if parallel and len(pending) > 1:
+        with ThreadPoolExecutor(max_workers=MAX_PARALLEL) as pool:
+            futures = {
+                pool.submit(enrich_deputado_completo, database, did, supabase, anos_despesas): did
+                for did, _ in pending
+            }
+            for future in as_completed(futures):
+                try:
+                    result = future.result()
+                    for k, v in result.items():
+                        totals[k] = totals.get(k, 0) + v
+                except Exception:
+                    totals["errors"] = totals.get("errors", 0) + 1
+    else:
+        for did, nome in pending:
+            result = enrich_deputado_completo(database, did, supabase, anos_despesas)
+            for k, v in result.items():
+                totals[k] = totals.get(k, 0) + v
+
+    totals["profiles"] = len(pending) - totals.get("errors", 0)
     return totals
 
 
@@ -651,21 +673,40 @@ def enrich_senadores(
     supabase: SupabaseClient | None = None,
     limit: int = 10,
     offset: int = 0,
+    parallel: bool = False,
 ) -> dict[str, Any]:
     """Wrapper que chama enrich_senador_completo para lote de senadores."""
     totals: dict[str, int] = {}
     senadores = database.list_parliamentarians(source="senado", limit=limit, offset=offset)
     enriched = database.get_enriched_parliamentarian_ids("senado")
-    for s in senadores:
-        if s["external_id"] in enriched:
-            totals.setdefault("skipped", 0)
-            totals["skipped"] += 1
-            continue
-        cod = int(s["external_id"])
-        result = enrich_senador_completo(database, cod, supabase)
-        for k, v in result.items():
-            totals[k] = totals.get(k, 0) + v
-    totals["profiles"] = len(senadores) - totals.get("errors", 0) - totals.get("skipped", 0)
+    pending = [(int(s["external_id"]), s["nome"]) for s in senadores if s["external_id"] not in enriched]
+    skipped = len(senadores) - len(pending)
+    totals["skipped"] = skipped
+
+    if not pending:
+        totals["profiles"] = 0
+        return totals
+
+    if parallel and len(pending) > 1:
+        with ThreadPoolExecutor(max_workers=MAX_PARALLEL) as pool:
+            futures = {
+                pool.submit(enrich_senador_completo, database, cod, supabase): cod
+                for cod, _ in pending
+            }
+            for future in as_completed(futures):
+                try:
+                    result = future.result()
+                    for k, v in result.items():
+                        totals[k] = totals.get(k, 0) + v
+                except Exception:
+                    totals["errors"] = totals.get("errors", 0) + 1
+    else:
+        for cod, nome in pending:
+            result = enrich_senador_completo(database, cod, supabase)
+            for k, v in result.items():
+                totals[k] = totals.get(k, 0) + v
+
+    totals["profiles"] = len(pending) - totals.get("errors", 0)
     return totals
 
 
@@ -941,3 +982,127 @@ def collect_discursos_senado(
             metadata={**c, "limit": limit, "offset": offset},
         )
     return c
+
+
+def collect_votacoes_ano(
+    database: LocalDatabase,
+    ano: int,
+    source: str = "camara",
+    supabase: SupabaseClient | None = None,
+) -> dict[str, int]:
+    """Coleta votações de um ano e seus votos da Câmara."""
+    c: dict[str, int] = {"votacoes": 0, "votos": 0, "errors": 0}
+
+    try:
+        if source == "camara":
+            votacoes_list = camara.list_all_votacoes_by_year(ano, page_size=100)
+        else:
+            logger.warning("Votacoes do Senado: use collect_votacoes_senado")
+            return c
+
+        for v in votacoes_list:
+            try:
+                votacao_id = v["id"]
+                votacao_row = {
+                    "source": source,
+                    "external_id": str(votacao_id),
+                    "proposicao_external_id": _extract_proposicao_id(v),
+                    "sigla_orgao": v.get("siglaOrgao"),
+                    "descricao": v.get("descricao"),
+                    "data": v.get("data"),
+                    "aprovada": v.get("aprovada"),
+                }
+
+                # Detalhe com votos
+                detail = camara.get_votacao_detail(votacao_id)
+                dados = detail.get("dados", {})
+                votos_lista = dados.get("votos", [])
+
+                voto_rows = []
+                for vt in votos_lista:
+                    dep = vt.get("deputado_", {})
+                    if isinstance(dep, dict):
+                        dep_id = str(dep.get("id", ""))
+                    else:
+                        dep_id = str(vt.get("idDeputado", ""))
+                    if not dep_id:
+                        continue
+                    voto_rows.append({
+                        "votacao_external_id": str(votacao_id),
+                        "source": source,
+                        "parlamentar_external_id": dep_id,
+                        "parlamentar_nome": vt.get("nome") or (dep.get("nome") if isinstance(dep, dict) else None),
+                        "voto": vt.get("tipoVoto") or vt.get("voto", ""),
+                    })
+
+                if supabase:
+                    supabase.upsert_votacoes([votacao_row])
+                    supabase.upsert_raw_payload(source, "votacao", str(votacao_id), detail)
+
+                database.upsert_raw_payload(
+                    source=source, kind="votacao",
+                    external_id=str(votacao_id), payload=detail,
+                )
+
+                if voto_rows:
+                    # SQLite: insert simples para votos
+                    now = _now()
+                    with database.connect() as conn:
+                        conn.executemany(
+                            """INSERT OR IGNORE INTO votos
+                               (votacao_external_id, source, parlamentar_external_id, parlamentar_nome, voto, updated_at)
+                               VALUES (?, ?, ?, ?, ?, ?)""",
+                            [(r["votacao_external_id"], r["source"], r["parlamentar_external_id"],
+                              r.get("parlamentar_nome"), r["voto"], now) for r in voto_rows],
+                        )
+                    if supabase:
+                        try:
+                            supabase.upsert_votos(voto_rows)
+                        except Exception:
+                            logger.warning("Supabase: falha ao upsert votos da votacao %s", votacao_id, exc_info=True)
+                    c["votos"] += len(voto_rows)
+
+                c["votacoes"] += 1
+
+            except Exception:
+                logger.warning("Falha ao coletar votacao %s", v.get("id"), exc_info=True)
+                c["errors"] += 1
+
+        database.record_sync_run(
+            job="pipeline:votacoes-ano",
+            source=source,
+            status="success" if c["errors"] == 0 else "partial",
+            records_count=c["votacoes"] + c["votos"],
+            metadata={"ano": ano, **c},
+        )
+        if supabase:
+            supabase.record_sync_run(
+                job="pipeline:votacoes-ano",
+                source=source,
+                status="success" if c["errors"] == 0 else "partial",
+                records_count=c["votacoes"] + c["votos"],
+                metadata={"ano": ano, **c},
+            )
+
+    except Exception as exc:
+        c["errors"] += 1
+        database.upsert_raw_payload(
+            source=source, kind="bulk-error",
+            external_id=f"votacoes-{ano}", payload={"ano": ano, "error": str(exc)[:500]},
+        )
+
+    return c
+
+
+def _extract_proposicao_id(votacao: dict) -> str | None:
+    proposicoes = votacao.get("proposicoes", [])
+    if isinstance(proposicoes, list) and proposicoes:
+        p = proposicoes[0]
+        if isinstance(p, dict):
+            pid = p.get("id") or p.get("codigo")
+            if pid:
+                return str(pid)
+            uri = p.get("uri", "")
+            parts = uri.rstrip("/").rsplit("/", 1)
+            return parts[-1] if parts[-1].isdigit() else None
+    return None
