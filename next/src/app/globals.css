@@ -1664,16 +1664,6 @@ h3 {
 }
 
 @media (max-width: 760px) {
-  .search-form {
-    grid-template-columns: 1fr 1fr;
-  }
-  .search-form .field-wide {
-    grid-column: span 2;
-  }
-  .search-form .primary-button {
-    grid-column: span 2;
-  }
-}
   .landing-shell {
     width: min(100% - 20px, 1680px);
     padding: 12px 0 24px;
