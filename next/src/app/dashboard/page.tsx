@@ -189,9 +189,9 @@ export default function Home() {
         <div>
           <div className="hero-ribbon">
             <span className="hero-chip">Painel do Legislativo</span>
-            {loading && <span className="hero-chip" style={{background:"#d97706",marginLeft:8}}>⏳ Carregando...</span>}
-            {connected && <span className="hero-chip" style={{background:"#166534",marginLeft:8}}>● Dados oficiais</span>}
-            {error && <span className="hero-chip" style={{background:"#b91c1c",marginLeft:8}}>⚠ Desconectado — dados mock</span>}
+            {loading && <span className="hero-chip hero-chip--loading">⏳ Carregando...</span>}
+            {connected && <span className="hero-chip hero-chip--ok">● Dados oficiais</span>}
+            {error && <span className="hero-chip hero-chip--error">⚠ Desconectado — dados mock</span>}
           </div>
           <p className="eyebrow">Acompanhamento público</p>
           <h1>Atuação parlamentar em linguagem clara</h1>
@@ -393,9 +393,10 @@ export default function Home() {
                   <b>{parlamentar.proposicoes}</b>
                   <small>projetos</small>
                 </span>
-                <span className="row-compare" onClick={(e) => { e.stopPropagation(); toggleCompare(parlamentar.id); }}
-                      title="Selecionar para comparar"
-                      style={{cursor:"pointer",padding:"0 4px",fontSize:11,color:(compareA===parlamentar.id||compareB===parlamentar.id)?"#2563eb":"#999"}}>
+                <span
+                  className={`row-compare${compareA === parlamentar.id || compareB === parlamentar.id ? " is-selected" : ""}`}
+                  onClick={(e) => { e.stopPropagation(); toggleCompare(parlamentar.id); }}
+                  title="Selecionar para comparar">
                   {compareA === parlamentar.id ? "❶" : compareB === parlamentar.id ? "❷" : "⇆"}
                 </span>
               </button>
@@ -611,23 +612,25 @@ export default function Home() {
       </section>
 
       {compareA && compareB && (
-        <section className="dashboard-grid" style={{marginTop: 24}}>
-          <article className="profile-card" style={{maxWidth: "100%"}}>
+        <section className="dashboard-grid comparison-section">
+          <article className="profile-card comparison-card">
             <div className="profile-hero">
               <div className="profile-title">
                 <p className="eyebrow">Comparação</p>
                 <h2>{compareData?.a?.nome ?? "..."} vs {compareData?.b?.nome ?? "..."}</h2>
-                <button className="secondary-button" onClick={clearCompare} style={{marginTop:8}}>Limpar comparação</button>
+                <button className="secondary-button comparison-clear" onClick={clearCompare}>Limpar comparação</button>
               </div>
             </div>
-            {comparing && <p style={{padding:16}}>Carregando comparação...</p>}
+            {comparing && <p className="muted-note" style={{padding: 16}}>Carregando comparação...</p>}
             {compareData && (
-              <table style={{width:"100%",borderCollapse:"collapse",margin:"16px 0"}}>
-                <thead><tr style={{background:"#f8fafc"}}>
-                  <th style={{padding:8,textAlign:"left"}}>Indicador</th>
-                  <th style={{padding:8,textAlign:"center"}}>{compareData.a.nome}</th>
-                  <th style={{padding:8,textAlign:"center"}}>{compareData.b.nome}</th>
-                </tr></thead>
+              <table className="comparison-table">
+                <thead>
+                  <tr>
+                    <th>Indicador</th>
+                    <th>{compareData.a.nome}</th>
+                    <th>{compareData.b.nome}</th>
+                  </tr>
+                </thead>
                 <tbody>
                   {([
                     ["Partido", "partido"],
@@ -643,10 +646,10 @@ export default function Home() {
                       ? (v: number | string) => (v as number).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
                       : (v: number | string) => String(v);
                     return (
-                    <tr key={key} style={{borderBottom:"1px solid #e2e8f0"}}>
-                      <td style={{padding:8,fontWeight:500}}>{label}</td>
-                      <td style={{padding:8,textAlign:"center",fontWeight:"bold",color:"#2563eb"}}>{fmt(valA)}</td>
-                      <td style={{padding:8,textAlign:"center",fontWeight:"bold",color:"#059669"}}>{fmt(valB)}</td>
+                    <tr key={key}>
+                      <td className="comp-label">{label}</td>
+                      <td className="comp-val-a">{fmt(valA)}</td>
+                      <td className="comp-val-b">{fmt(valB)}</td>
                     </tr>
                     );
                   })}
