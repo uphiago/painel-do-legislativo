@@ -3,9 +3,6 @@
 import { createClient } from "@/utils/supabase/client";
 import { useEffect, useState } from "react";
 import {
-  citizenQuestions,
-  despesas as mockDespesas,
-  legislativeHighlights,
   parlamentares as mockParlamentares,
   proposicoes as mockProposicoes,
   resumoCards as mockResumoCards,
@@ -18,7 +15,6 @@ export function useLiveDashboard() {
   const [parlamentares, setParlamentares] = useState(mockParlamentares);
   const [resumoCards, setResumoCards] = useState(mockResumoCards);
   const [proposicoes, setProposicoes] = useState(mockProposicoes);
-  const [despesas, setDespesas] = useState(mockDespesas);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -73,23 +69,6 @@ export function useLiveDashboard() {
           }
         }
 
-        // Expenses aggregated server-side via materialized view
-        const { data: expData } = await supabase
-          .from("despesas_por_categoria")
-          .select("categoria, total")
-          .order("total", { ascending: false })
-          .limit(5);
-
-        if (!cancelled && expData && expData.length > 0) {
-          const total = expData.reduce((s, e) => s + (e.total ?? 0), 0) || 1;
-          const mapped = expData.map((e) => ({
-            categoria: e.categoria ?? "Outros",
-            valor: (e.total ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
-            percentual: total > 0 ? Math.round(((e.total ?? 0) / total) * 100) : 0,
-          }));
-          if (mapped.length > 0) setDespesas(mapped);
-        }
-
         if (!cancelled) setConnected(true);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -108,9 +87,6 @@ export function useLiveDashboard() {
     parlamentares,
     resumoCards,
     proposicoes,
-    despesas,
-    citizenQuestions,
-    legislativeHighlights,
     connected,
     error,
     loading,
@@ -174,19 +150,11 @@ async function enrichParlamentares(
       uf: r.uf ?? "BR",
       partido: r.partido ?? "Sem partido",
       mandato: "2023-2027",
-      temas: [],
       proposicoes: kpi?.total_autorias ?? 0,
       autoriaPrincipal: kpi?.autoria_principal ?? 0,
-      despesas: total > 0 ? brl(total) : "Sem dados",
+      despesas: brl(total),
       despesasValor: total,
-      presenca: pluralOrgaos(orgaos),
-      snapshotLabel: "Supabase",
-      destaque: "Perfil oficial da Câmara/Senado",
-      coletaResumo: "Dados oficiais coletados via API",
-      fontePrincipal: isSenado ? "Senado Federal" : "Câmara dos Deputados",
-      leituraPublica: `Perfil oficial do ${isSenado ? "senador" : "deputado"} ${r.nome} (${r.partido}-${r.uf}).`,
-      proximaAcao: "Acompanhar proposições e tramitações em andamento.",
-      participacao: `${pluralOrgaos(orgaos)} identificado${orgaos === 1 ? "" : "s"}`,
+      participacao: `${pluralOrgaos(orgaos)}`,
     };
   });
 }
@@ -254,10 +222,11 @@ export async function fetchParlamentarDetalhe(
   supabase: ReturnType<typeof createClient>,
   externalId: string,
 ): Promise<ParlamentarDetalhe> {
-  // KPIs via materialized view (1 query em vez de 3 head-counts + 2 data queries).
-  const [kpiRes, authList] = await Promise.all([
+  const [kpiRes, authList, temasRes, despRes] = await Promise.all([
     supabase.from("parlamentar_kpis").select("total_autorias, autoria_principal, total_orgaos, despesa_total").eq("external_id", externalId).single(),
     supabase.from("proposition_authors").select("proposition_external_id").eq("parliamentarian_external_id", externalId).limit(400),
+    supabase.rpc("parlamentar_temas_frequentes", { parl_id: externalId, max_results: 8 }),
+    supabase.rpc("parlamentar_despesas_categoria", { parl_id: externalId, max_results: 8 }),
   ]);
 
   const kpi = kpiRes.data;
@@ -266,7 +235,6 @@ export async function fetchParlamentarDetalhe(
   const ids = [...new Set((auth ?? []).map((a) => a.proposition_external_id as string))].slice(0, 200);
 
   let proposicoes: ProposicaoDestaque[] = [];
-  let temas: string[] = [];
 
   if (ids.length) {
     const { data: props } = await supabase
@@ -276,50 +244,23 @@ export async function fetchParlamentarDetalhe(
       .order("ano", { ascending: false })
       .limit(40);
     if (props?.length) proposicoes = await enrichProposicoes(supabase, props);
-
-    const { data: th } = await supabase
-      .from("proposition_themes")
-      .select("theme_name")
-      .in("proposition_external_id", ids)
-      .limit(800);
-    const counts: Record<string, number> = {};
-    for (const t of th ?? []) {
-      const name = t.theme_name as string | null;
-      if (name) counts[name] = (counts[name] ?? 0) + 1;
-    }
-    temas = Object.entries(counts)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 6)
-      .map(([k]) => k);
   }
 
-  // Despesas agregadas por categoria via aggregacao server-side
-  const { data: exp } = await supabase
-    .from("expenses")
-    .select("categoria, valor")
-    .eq("parlamentar_external_id", externalId)
-    .limit(5000);
+  const temas: string[] = ((Array.isArray(temasRes.data) ? temasRes.data : []) as Array<{ theme_name: string }>)
+    .map((t: { theme_name: string }) => t.theme_name);
 
-  const grouped: Record<string, number> = {};
-  let despesaTotal = kpi?.despesa_total ?? 0;
-  for (const e of exp ?? []) {
-    const cat = (e.categoria as string | null) ?? "Outros";
-    const v = (e.valor as number) ?? 0;
-    grouped[cat] = (grouped[cat] ?? 0) + v;
-  }
-  const sorted = Object.entries(grouped).sort(([, a], [, b]) => b - a).slice(0, 5);
-  const maxCat = sorted.length ? sorted[0][1] : 1;
-  const despesas: DespesaCategoria[] = sorted.map(([categoria, valor]) => ({
-    categoria,
-    valor: brl(valor),
-    percentual: Math.round((valor / maxCat) * 100),
+  const despRows = (Array.isArray(despRes.data) ? despRes.data : []) as Array<{ categoria: string; total: number; percentual: number }>;
+  const despesas: DespesaCategoria[] = despRows.map((r) => ({
+    categoria: r.categoria,
+    valor: brl(r.total ?? 0),
+    percentual: r.percentual ?? 0,
   }));
 
   const kpis: ParlamentarKpis = {
     proposicoes: kpi?.total_autorias ?? 0,
     autoria: kpi?.autoria_principal ?? 0,
     orgaos: kpi?.total_orgaos ?? 0,
-    despesaTotal,
+    despesaTotal: kpi?.despesa_total ?? 0,
   };
 
   return { proposicoes, temas, despesas, kpis };

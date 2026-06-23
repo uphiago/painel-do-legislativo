@@ -34,8 +34,8 @@ type Ordenacao = (typeof ORDENACOES)[number];
 const RECORTE_LIMIT = 6;
 
 export default function Home() {
-  const { parlamentares, resumoCards, proposicoes, citizenQuestions,
-          legislativeHighlights, connected, error, loading } = useLiveDashboard();
+  const { parlamentares, resumoCards, proposicoes,
+          connected, error, loading } = useLiveDashboard();
 
   const [activeId, setActiveId] = useState(parlamentares[0]?.id ?? "");
   const [activeTab, setActiveTab] = useState(tabs[0]);
@@ -49,7 +49,7 @@ export default function Home() {
   const [ordenacao, setOrdenacao] = useState<Ordenacao>("Proposições");
   const [searchProposicoes, setSearchProposicoes] = useState<BuscaProposicao[]>([]);
   const [searching, setSearching] = useState(false);
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const buscarTema = useCallback(async (tema: string) => {
     if (!tema || tema.length < 2) return;
@@ -299,59 +299,33 @@ export default function Home() {
         })}
       </section>
 
-      <section className="data-map-grid" aria-label="Perguntas respondidas pelo painel">
-        <article className="data-map-card civic-explain-card">
+      <section className="data-map-grid" aria-label="Resultados de busca">
+        <article className="collector-queue-card civic-queue-card" style={{ gridColumn: "1 / -1" }}>
           <div className="section-head compact">
             <div>
-              <p className="eyebrow">Para o cidadão</p>
-              <h2>Respostas simples para perguntas legislativas</h2>
-            </div>
-          </div>
-          <div className="citizen-question-list">
-            {citizenQuestions.map((item, index) => (
-              <article key={item.question}>
-                <span>{String(index + 1).padStart(2, "0")}</span>
-                <div>
-                  <strong>{item.question}</strong>
-                  <p>{item.answer}</p>
-                </div>
-              </article>
-            ))}
-          </div>
-        </article>
-
-        <article className="collector-queue-card civic-queue-card">
-          <div className="section-head compact">
-            <div>
-              <p className="eyebrow">{searchTema ? `Busca: "${searchTema}"` : "Leitura do recorte"}</p>
+              <p className="eyebrow">{searchTema ? `Busca: "${searchTema}"` : "Proposições recentes"}</p>
               <h2>{searchTema
                 ? `${searchProposicoes.length} resultados` + (searching ? " (buscando...)" : "")
-                : "O que acompanhar primeiro"}</h2>
+                : "Últimas proposições na Câmara"}</h2>
             </div>
           </div>
           <div className="collector-run-list">
-            {(searchTema
-              ? searchProposicoes
-              : proposicoes
-            ).slice(0, RECORTE_LIMIT).map((item, idx) => {
+            {(searchTema ? searchProposicoes : proposicoes).slice(0, RECORTE_LIMIT).map((item, idx) => {
               const sigla = "sigla" in item ? item.sigla : undefined;
               const numero = "numero" in item ? item.numero : undefined;
               const ano = "ano" in item ? item.ano : undefined;
               const ementa = "ementa" in item ? item.ementa : undefined;
               const status = "status" in item ? item.status : undefined;
               const responsavel = "responsavel" in item ? item.responsavel : undefined;
-              const impacto = "impacto" in item ? item.impacto : undefined;
               return (
                 <article key={`${sigla}-${numero}-${idx}`}>
-                  <BarChart3 aria-hidden="true" size={18} />
+                  <Search aria-hidden="true" size={18} />
                   <div>
-                    <strong>
-                      {sigla} {numero}{ano ? `/${ano}` : ""}
-                    </strong>
-                    <span>{status ?? ementa?.slice(0, 50)}</span>
+                    <strong>{sigla} {numero}{ano ? `/${ano}` : ""}</strong>
+                    <span>{status ?? ementa?.slice(0, 60)}</span>
                   </div>
                   <p>{responsavel ?? ementa?.slice(0, 80)}</p>
-                  <small>{impacto ?? "Resultado da busca"}</small>
+                  <small>Proposição legislativa</small>
                 </article>
               );
             })}
@@ -373,7 +347,8 @@ export default function Home() {
             </div>
             <button className="mini-button" type="button"
                     onClick={() => { downloadCSV("parlamentares.csv", filteredParlamentares.map(p => ({
-                      nome: p.nome, cargo: p.cargo, partido: p.partido, uf: p.uf, proposicoes: p.proposicoes, participacao: p.participacao
+                      nome: p.nome, cargo: p.cargo, partido: p.partido, uf: p.uf,
+                      proposicoes: p.proposicoes, despesas: p.despesas, participacao: p.participacao,
                     }))); show("CSV exportado!"); }}>
               <Download aria-hidden="true" size={16} />
               CSV
@@ -493,14 +468,6 @@ export default function Home() {
             {activeTab === "Resumo" && (
               <>
                 <section className="detail-card wide">
-                  <h3>Leitura rápida</h3>
-                  <p>{activeParlamentar.leituraPublica}</p>
-                </section>
-                <section className="detail-card wide evidence-card">
-                  <h3>Mensagem pública</h3>
-                  <p>{activeParlamentar.destaque}</p>
-                </section>
-                <section className="detail-card">
                   <h3>Temas recorrentes</h3>
                   {perfilTemas.length > 0 ? (
                     <div className="tag-list">
@@ -510,13 +477,17 @@ export default function Home() {
                     </div>
                   ) : (
                     <p className="muted-note">
-                      {detalheLoading ? "Carregando temas…" : "Sem temas classificados para este parlamentar."}
+                      {detalheLoading ? "Carregando temas…" : "Sem temas classificados."}
                     </p>
                   )}
                 </section>
-                <section className="detail-card">
-                  <h3>O que observar</h3>
-                  <p>{activeParlamentar.proximaAcao}</p>
+                <section className="detail-card wide">
+                  <h3>Atuação parlamentar</h3>
+                  <p>
+                    {activeParlamentar.nome} ({activeParlamentar.partido}-{activeParlamentar.uf})
+                    exerce o mandato como {activeParlamentar.cargo.toLowerCase()} na legislatura {activeParlamentar.mandato}.
+                    {detalhe?.data.kpis && ` Possui ${detalhe.data.kpis.proposicoes} proposições registradas (${detalhe.data.kpis.autoria} como autor principal) e participação em ${detalhe.data.kpis.orgaos} órgãos legislativos.`}
+                  </p>
                 </section>
               </>
             )}
@@ -552,19 +523,10 @@ export default function Home() {
                   <article>
                     <strong>Participação institucional</strong>
                     <span>{activeParlamentar.participacao}</span>
-                    <p>
-                      A página pública mostra onde o parlamentar trabalha, quais
-                      colegiados acompanha e quais frentes parlamentares dialogam
-                      com seus temas prioritários.
-                    </p>
                   </article>
                   <article>
                     <strong>Temas de atuação</strong>
                     <span>{perfilTemas.length > 0 ? perfilTemas.join(", ") : "Sem temas classificados"}</span>
-                    <p>
-                      O recorte por tema ajuda gabinetes e cidadãos a apresentar
-                      produção legislativa sem depender de linguagem técnica.
-                    </p>
                   </article>
                 </div>
               </section>
@@ -646,36 +608,6 @@ export default function Home() {
             </p>
           </article>
         )}
-      </section>
-
-      <section className="collector-board civic-board" aria-label="Informações legislativas disponíveis">
-        <div className="section-head collector-board-head">
-          <div>
-            <p className="eyebrow">O que o painel mostra</p>
-            <h2>Leitura completa da atuação pública</h2>
-            <p>
-              A experiência pública valoriza a produção legislativa e traduz
-              informações oficiais para quem precisa acompanhar, comparar e
-              prestar contas à sociedade.
-            </p>
-          </div>
-        </div>
-
-        <div className="collector-grid">
-          {legislativeHighlights.map((item) => {
-            const Icon = item.icon;
-            return (
-              <article className="collector-card" key={item.title}>
-                <div className="collector-card-top">
-                  <Icon aria-hidden="true" size={21} />
-                  <span>{item.metric}</span>
-                </div>
-                <h3>{item.title}</h3>
-                <p>{item.description}</p>
-              </article>
-            );
-          })}
-        </div>
       </section>
 
       {compareA && compareB && (

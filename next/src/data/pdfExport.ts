@@ -12,8 +12,9 @@ export async function generateParlamentarPDF(parlamentar: {
   casa: string;
   proposicoes: number;
   mandato: string;
-  leituraPublica: string;
   participacao: string;
+  despesas: string;
+  despesasValor?: number;
 }) {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const M = 20;
@@ -67,7 +68,6 @@ export async function generateParlamentarPDF(parlamentar: {
     .from("proposition_authors")
     .select("proposition_external_id")
     .eq("parliamentarian_external_id", parlamentar.id)
-    .eq("proposition_source", "camara")
     .limit(20);
 
   let propIds: string[] = [];
