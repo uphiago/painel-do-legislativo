@@ -12,8 +12,9 @@ DEFAULT_HEADERS = {
     "User-Agent": "painel-do-legislativo/0.1 discovery collector",
 }
 
-CAMARA_RATE_LIMIT = 4.0  # seconds between requests (max ~15/min, safe)
+CAMARA_RATE_LIMIT = 4.0   # seconds between requests (max 15/min, safe)
 SENADO_RATE_LIMIT = 0.5  # seconds between requests (max 10/sec, generous buffer)
+BULK_DOWNLOAD_LIMIT = 2.0  # seconds between bulk file downloads
 
 
 class RateLimiter:
@@ -35,6 +36,12 @@ class RateLimiter:
 
 _camara_limiter = RateLimiter(CAMARA_RATE_LIMIT)
 _senado_limiter = RateLimiter(SENADO_RATE_LIMIT)
+_bulk_limiter = RateLimiter(BULK_DOWNLOAD_LIMIT)
+
+
+def wait_bulk() -> None:
+    """Rate-limit para downloads de arquivos grandes (bulk)."""
+    _bulk_limiter.wait()
 
 
 def _get_limiter(url: str) -> RateLimiter:

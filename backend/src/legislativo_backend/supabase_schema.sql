@@ -224,6 +224,36 @@ CREATE TABLE IF NOT EXISTS proposition_trackings (
   UNIQUE(proposition_source, proposition_external_id, sequencia)
 );
 
+-- Votacoes (voting sessions)
+CREATE TABLE IF NOT EXISTS votacoes (
+  id BIGSERIAL PRIMARY KEY,
+  source TEXT NOT NULL,
+  external_id TEXT NOT NULL,
+  proposicao_external_id TEXT,
+  sigla_orgao TEXT,
+  descricao TEXT,
+  data TEXT,
+  aprovada BOOLEAN,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(source, external_id)
+);
+CREATE INDEX IF NOT EXISTS idx_votacoes_proposicao ON votacoes(proposicao_external_id);
+CREATE INDEX IF NOT EXISTS idx_votacoes_data ON votacoes(data);
+
+-- Votos (individual parliamentarian votes)
+CREATE TABLE IF NOT EXISTS votos (
+  id BIGSERIAL PRIMARY KEY,
+  votacao_external_id TEXT NOT NULL,
+  source TEXT NOT NULL,
+  parlamentar_external_id TEXT NOT NULL,
+  parlamentar_nome TEXT,
+  voto TEXT NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(votacao_external_id, source, parlamentar_external_id)
+);
+CREATE INDEX IF NOT EXISTS idx_votos_parlamentar ON votos(parlamentar_external_id);
+CREATE INDEX IF NOT EXISTS idx_votos_votacao ON votos(votacao_external_id);
+
 -- Senator speeches
 CREATE TABLE IF NOT EXISTS discursos (
   id BIGSERIAL PRIMARY KEY,

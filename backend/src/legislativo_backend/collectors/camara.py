@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from legislativo_backend.http import DEFAULT_HEADERS, download_retry, fetch_json
+from legislativo_backend.http import DEFAULT_HEADERS, download_retry, fetch_json, wait_bulk
 
 BASE_URL = "https://dadosabertos.camara.leg.br/api/v2"
 
@@ -297,6 +297,7 @@ def download_proposicoes_arquivo(ano: int, formato: str = "json") -> list[dict[s
     """Baixa o arquivo anual completo de proposicoes do site da Camara."""
     import httpx
 
+    wait_bulk()
     url = f"https://dadosabertos.camara.leg.br/arquivos/proposicoes/{formato}/proposicoes-{ano}.{formato}"
     resp = httpx.get(url, headers=DEFAULT_HEADERS, timeout=120, follow_redirects=True)
     resp.raise_for_status()
@@ -312,6 +313,7 @@ def download_proposicoes_arquivo(ano: int, formato: str = "json") -> list[dict[s
 def download_proposicoes_temas_arquivo(ano: int, formato: str = "json") -> list[dict[str, Any]]:
     import httpx
 
+    wait_bulk()
     url = f"https://dadosabertos.camara.leg.br/arquivos/proposicoesTemas/{formato}/proposicoesTemas-{ano}.{formato}"
     resp = httpx.get(url, headers=DEFAULT_HEADERS, timeout=120, follow_redirects=True)
     resp.raise_for_status()
@@ -346,6 +348,7 @@ def download_ceap_csv_stream(ano: int) -> list[dict[str, Any]]:
 
     import httpx
 
+    wait_bulk()
     url = f"https://www.camara.leg.br/cotas/Ano-{ano}.csv.zip"
     headers = {**DEFAULT_HEADERS, "Accept": "*/*"}
     resp = httpx.get(url, headers=headers, timeout=120, follow_redirects=True)

@@ -207,10 +207,16 @@ def _blank_to_none(value: Any) -> str | None:
 def _int_or_none(value: Any) -> int | None:
     if value in (None, ""):
         return None
-    return int(value)
+    try:
+        return int(value)
+    except (ValueError, TypeError):
+        return None
 
 
 def _float_or_zero(value: Any) -> float:
     if value in (None, ""):
         return 0
-    return float(str(value).replace(",", "."))
+    try:
+        return float(str(value).replace(",", "."))
+    except (ValueError, TypeError):
+        return 0

@@ -159,12 +159,52 @@ class LocalDatabase:
         return len(rows)
 
     def get_enriched_parliamentarian_ids(self, source: str) -> set[str]:
+        kinds = {"camara": ("deputado-full", "deputado-perfil"), "senado": ("senador-full", "senador-processos")}
         with self.connect() as connection:
+            placeholders = ",".join("?" for _ in kinds.get(source, ()))
             rows = connection.execute(
-                "SELECT DISTINCT external_id FROM raw_payloads WHERE source = ? AND kind = ?",
-                (source, "deputado-full" if source == "camara" else "senador-full"),
+                f"SELECT DISTINCT external_id FROM raw_payloads WHERE source = ? AND kind IN ({placeholders})",
+                (source, *kinds.get(source, ())),
             ).fetchall()
         return {row["external_id"] for row in rows}
+
+    def upsert_discursos(self, rows: list[dict[str, Any]]) -> int:
+        now = _now()
+        with self.connect() as connection:
+            connection.executemany(
+                """INSERT OR IGNORE INTO discursos
+                   (senador_codigo, senador_nome, data_discurso, casa, tipo, resumo, texto_url, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                [(r["senador_codigo"], r.get("senador_nome"), r.get("data_discurso"),
+                  r.get("casa", "senado"), r.get("tipo"), r.get("resumo"), r.get("texto_url"), now)
+                 for r in rows],
+            )
+        return len(rows)
+
+    def upsert_votacoes(self, rows: list[dict[str, Any]]) -> int:
+        now = _now()
+        with self.connect() as connection:
+            connection.executemany(
+                """INSERT OR REPLACE INTO votacoes
+                   (source, external_id, proposicao_external_id, sigla_orgao, descricao, data, aprovada, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                [(r["source"], r["external_id"], r.get("proposicao_external_id"),
+                  r.get("sigla_orgao"), r.get("descricao"), r.get("data"),
+                  1 if r.get("aprovada") else 0, now) for r in rows],
+            )
+        return len(rows)
+
+    def upsert_votos(self, rows: list[dict[str, Any]]) -> int:
+        now = _now()
+        with self.connect() as connection:
+            connection.executemany(
+                """INSERT OR IGNORE INTO votos
+                   (votacao_external_id, source, parlamentar_external_id, parlamentar_nome, voto, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                [(r["votacao_external_id"], r["source"], r["parlamentar_external_id"],
+                  r.get("parlamentar_nome"), r["voto"], now) for r in rows],
+            )
+        return len(rows)
 
     def list_unenriched_propositions(
         self,

@@ -52,7 +52,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body>{children}</body>
+      <body>
+        {children}
+        <footer style={{ textAlign: "center", padding: "32px 16px", color: "var(--ink-soft)", fontSize: "0.82rem" }}>
+          Painel do Legislativo · Dados oficiais da Câmara dos Deputados e Senado Federal ·{" "}
+          <a href="https://github.com/uphiago/painel-do-legislativo" style={{ color: "var(--accent)" }}>GitHub</a>
+        </footer>
+      </body>
     </html>
   );
 }

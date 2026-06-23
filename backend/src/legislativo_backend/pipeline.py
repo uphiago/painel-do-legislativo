@@ -617,14 +617,6 @@ def collect_bulk_complete_year(
     return c
 
 
-def collect_bulk_proposicoes_by_year(
-    database: LocalDatabase,
-    ano: int,
-    supabase: SupabaseClient | None = None,
-) -> dict[str, int]:
-    return collect_bulk_complete_year(database, ano, supabase)
-
-
 def enrich_deputados(
     database: LocalDatabase,
     supabase: SupabaseClient | None = None,
@@ -941,17 +933,7 @@ def collect_discursos_senado(
                     "texto_url": None,
                 })
 
-            local_count = 0
-            now = _now()
-            with database.connect() as conn:
-                conn.executemany(
-                    """INSERT OR IGNORE INTO discursos
-                       (senador_codigo, senador_nome, data_discurso, casa, tipo, resumo, texto_url, updated_at)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-                    [(r["senador_codigo"], r["senador_nome"], r["data_discurso"],
-                      r["casa"], r["tipo"], r["resumo"], r["texto_url"], now) for r in rows],
-                )
-                local_count = len(rows)
+            local_count = database.upsert_discursos(rows)
 
             c["discursos"] += local_count
 
@@ -1039,33 +1021,14 @@ def collect_votacoes_ano(
                     supabase.upsert_votacoes([votacao_row])
                     supabase.upsert_raw_payload(source, "votacao", str(votacao_id), detail)
 
-                # SQLite upsert da votacao
-                with database.connect() as conn:
-                    conn.execute(
-                        """INSERT OR REPLACE INTO votacoes
-                           (source, external_id, proposicao_external_id, sigla_orgao, descricao, data, aprovada, updated_at)
-                           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-                        (source, str(votacao_id), votacao_row["proposicao_external_id"],
-                         votacao_row["sigla_orgao"], votacao_row["descricao"], votacao_row["data"],
-                         1 if votacao_row["aprovada"] else 0, _now()),
-                    )
-
+                database.upsert_votacoes([votacao_row])
                 database.upsert_raw_payload(
                     source=source, kind="votacao",
                     external_id=str(votacao_id), payload=detail,
                 )
 
                 if voto_rows:
-                    # SQLite: insert simples para votos
-                    now = _now()
-                    with database.connect() as conn:
-                        conn.executemany(
-                            """INSERT OR IGNORE INTO votos
-                               (votacao_external_id, source, parlamentar_external_id, parlamentar_nome, voto, updated_at)
-                               VALUES (?, ?, ?, ?, ?, ?)""",
-                            [(r["votacao_external_id"], r["source"], r["parlamentar_external_id"],
-                              r.get("parlamentar_nome"), r["voto"], now) for r in voto_rows],
-                        )
+                    database.upsert_votos(voto_rows)
                     if supabase:
                         try:
                             supabase.upsert_votos(voto_rows)

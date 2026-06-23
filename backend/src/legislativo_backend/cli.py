@@ -1286,26 +1286,6 @@ def pipeline_bulk_year(
     _echo_db_summary(database)
 
 
-@pipeline_app.command("bulk-proposicoes")
-def pipeline_bulk_proposicoes(
-    anos: Annotated[str, typer.Option("--anos")] = "2025",
-    db_path: DbPathOption = None,
-    supabase_sync: Annotated[bool, typer.Option("--supabase")] = False,
-) -> None:
-    """Baixa arquivos anuais completos de proposicoes da Camara (apenas proposicoes)."""
-    from legislativo_backend.pipeline import collect_bulk_complete_year
-    from legislativo_backend.supabase_client import SupabaseClient
-
-    database = _db(db_path)
-    supabase = SupabaseClient() if supabase_sync else None
-    anos_list = [int(a.strip()) for a in anos.split(",")]
-    for ano in anos_list:
-        typer.echo(f"Baixando proposicoes de {ano}...")
-        result = collect_bulk_complete_year(database, ano, supabase)
-        typer.echo(f"  {result}")
-    _echo_db_summary(database)
-
-
 @pipeline_app.command("full")
 def pipeline_full(
     db_path: DbPathOption = None,
