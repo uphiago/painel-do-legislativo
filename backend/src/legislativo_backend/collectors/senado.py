@@ -41,12 +41,12 @@ def get_processo_detail(processo_id: int) -> dict[str, Any]:
     return fetch_json(f"{LEGIS_URL}/processo/{processo_id}", params={"v": 1})
 
 
-def list_senador_ceaps(ano: int) -> list[dict[str, Any]]:
-    """Retorna todas as CEAPS de um ano, paginando automaticamente."""
-    return list_all_senador_ceaps(ano)
+def list_senador_ceaps(ano: int, limit: int | None = None) -> list[dict[str, Any]]:
+    """Retorna CEAPS de um ano, paginando automaticamente. limit opcional para evitar fetch total."""
+    return list_all_senador_ceaps(ano, limit=limit)
 
 
-def list_all_senador_ceaps(ano: int, page_size: int = 1000) -> list[dict[str, Any]]:
+def list_all_senador_ceaps(ano: int, page_size: int = 1000, limit: int | None = None) -> list[dict[str, Any]]:
     """Coleta TODAS as CEAPS de um ano via paginacao real da API."""
     rows: list[dict[str, Any]] = []
     page = 1
@@ -57,6 +57,8 @@ def list_all_senador_ceaps(ano: int, page_size: int = 1000) -> list[dict[str, An
         )
         if isinstance(payload, list):
             rows.extend(payload)
+            if limit and len(rows) >= limit:
+                return rows[:limit]
             if len(payload) < page_size:
                 break
             page += 1
@@ -65,6 +67,8 @@ def list_all_senador_ceaps(ano: int, page_size: int = 1000) -> list[dict[str, An
             if not items:
                 break
             rows.extend(items if isinstance(items, list) else [items])
+            if limit and len(rows) >= limit:
+                return rows[:limit]
             total = payload.get("total") or payload.get("totalRegistros", 0)
             if len(rows) >= total:
                 break

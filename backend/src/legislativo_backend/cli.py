@@ -605,7 +605,7 @@ def collect_senado_ceaps(
     limit: Annotated[int, typer.Option("--limit", min=1, max=100000)] = 1000,
 ) -> None:
     database = _db(db_path)
-    rows = list_senador_ceaps(ano=ano)[:limit]
+    rows = list_senador_ceaps(ano=ano, limit=limit)
     normalized = [normalize_senado_ceaps(row) for row in rows]
     count = database.upsert_expenses(normalized)
     database.upsert_raw_payload(
@@ -845,7 +845,7 @@ def discover_senado_ceaps(
     ano: Annotated[int, typer.Option("--ano", min=2008)] = 2024,
     limit: Annotated[int, typer.Option("--limit", min=1, max=1000)] = 10,
 ) -> None:
-    rows = list_senador_ceaps(ano=ano)[:limit]
+    rows = list_senador_ceaps(ano=ano, limit=limit)
     normalized = [normalize_senado_ceaps(row).model_dump() for row in rows]
     _print_summary("Senado - despesas CEAPS", len(rows), normalized, f"senado_ceaps_{ano}")
 
@@ -1317,6 +1317,22 @@ def pipeline_full(
             for k, v in data.items():
                 typer.echo(f"  {k}: {v}")
     _echo_db_summary(database)
+
+
+@pipeline_app.command("enrich-senado-processo")
+def pipeline_enrich_senado_processo(
+    processo_id: Annotated[int, typer.Argument()],
+    db_path: DbPathOption = None,
+    supabase_sync: Annotated[bool, typer.Option("--supabase")] = False,
+) -> None:
+    """Enriquece um processo do Senado com detalhe, documentos e emendas."""
+    from legislativo_backend.pipeline import enrich_proposicoes_senado
+    from legislativo_backend.supabase_client import SupabaseClient
+
+    database = _db(db_path)
+    supabase = SupabaseClient() if supabase_sync else None
+    result = enrich_proposicoes_senado(database, processo_id, supabase)
+    typer.echo(f"Processo {processo_id}: {result}")
 
 
 @pipeline_app.command("votacoes")
