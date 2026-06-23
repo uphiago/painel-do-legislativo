@@ -1,16 +1,12 @@
 import {
   Activity,
-  BadgeCheck,
   Banknote,
-  Building2,
   Database,
   FileText,
   Gavel,
   GitBranch,
   Landmark,
   Layers,
-  MapPin,
-  Megaphone,
   SearchCheck,
   ServerCog,
   ShieldCheck,
@@ -166,27 +162,6 @@ export const resumoCards = [
   },
 ];
 
-export const profileSections = [
-  {
-    title: "Onde atua mais",
-    description:
-      "Temas recorrentes extraídos das ementas, palavras-chave e histórico de proposições.",
-    icon: Megaphone,
-  },
-  {
-    title: "O que falta andar",
-    description:
-      "Leitura da fase atual com próximo passo, comissão, relatoria ou pauta responsável.",
-    icon: Gavel,
-  },
-  {
-    title: "Transparência conectada",
-    description:
-      "Cotas, despesas, fornecedores e evolução mensal no mesmo perfil público.",
-    icon: Banknote,
-  },
-];
-
 export type ProposicaoDestaque = {
   sigla: string;
   numero: string;
@@ -236,18 +211,6 @@ export const despesas = [
   { categoria: "Senado 2024-2026: CEAPS", valor: "50 mil+ itens", percentual: 62 },
   { categoria: "Comprovantes e documentos oficiais", valor: "por despesa", percentual: 74 },
   { categoria: "Fornecedores identificados", valor: "por CNPJ/CPF", percentual: 58 },
-];
-
-export const dataSources = [
-  { name: "Câmara dos Deputados", icon: Building2 },
-  { name: "Senado Federal", icon: BadgeCheck },
-  { name: "Portal da Transparência", icon: MapPin },
-];
-
-export const landingEvidence = [
-  { value: "593", label: "perfis parlamentares" },
-  { value: "68 mil+", label: "matérias organizadas" },
-  { value: "512 mil+", label: "despesas oficiais" },
 ];
 
 export const legislativeHighlights = [

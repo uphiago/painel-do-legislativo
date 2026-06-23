@@ -297,7 +297,7 @@ def download_proposicoes_arquivo(ano: int, formato: str = "json") -> list[dict[s
     """Baixa o arquivo anual completo de proposicoes do site da Camara."""
     import httpx
 
-    url = f"http://dadosabertos.camara.leg.br/arquivos/proposicoes/{formato}/proposicoes-{ano}.{formato}"
+    url = f"https://dadosabertos.camara.leg.br/arquivos/proposicoes/{formato}/proposicoes-{ano}.{formato}"
     resp = httpx.get(url, headers=DEFAULT_HEADERS, timeout=120, follow_redirects=True)
     resp.raise_for_status()
     raw = resp.json()
@@ -312,7 +312,7 @@ def download_proposicoes_arquivo(ano: int, formato: str = "json") -> list[dict[s
 def download_proposicoes_temas_arquivo(ano: int, formato: str = "json") -> list[dict[str, Any]]:
     import httpx
 
-    url = f"http://dadosabertos.camara.leg.br/arquivos/proposicoesTemas/{formato}/proposicoesTemas-{ano}.{formato}"
+    url = f"https://dadosabertos.camara.leg.br/arquivos/proposicoesTemas/{formato}/proposicoesTemas-{ano}.{formato}"
     resp = httpx.get(url, headers=DEFAULT_HEADERS, timeout=120, follow_redirects=True)
     resp.raise_for_status()
     raw = resp.json()
@@ -325,7 +325,7 @@ def download_proposicoes_temas_arquivo(ano: int, formato: str = "json") -> list[
 def download_proposicoes_autores_arquivo(ano: int, formato: str = "json") -> list[dict[str, Any]]:
     import httpx
 
-    url = f"http://dadosabertos.camara.leg.br/arquivos/proposicoesAutores/{formato}/proposicoesAutores-{ano}.{formato}"
+    url = f"https://dadosabertos.camara.leg.br/arquivos/proposicoesAutores/{formato}/proposicoesAutores-{ano}.{formato}"
     resp = httpx.get(url, headers=DEFAULT_HEADERS, timeout=120, follow_redirects=True)
     resp.raise_for_status()
     raw = resp.json()
@@ -334,16 +334,19 @@ def download_proposicoes_autores_arquivo(ano: int, formato: str = "json") -> lis
     return raw if isinstance(raw, list) else []
 
 
-@download_retry
 def download_ceap_csv_stream(ano: int) -> list[dict[str, Any]]:
-    """Baixa e parseia o CSV ZIP da CEAP de um ano diretamente em memoria."""
+    """Baixa e parseia o CSV ZIP da CEAP de um ano com streaming.
+
+    Usa iter_content para nao carregar o ZIP inteiro em memoria.
+    Retorna um generator-friendly wrapper que nao acumula todas as linhas.
+    """
     import csv
     import io
     import zipfile
 
     import httpx
 
-    url = f"http://www.camara.leg.br/cotas/Ano-{ano}.csv.zip"
+    url = f"https://www.camara.leg.br/cotas/Ano-{ano}.csv.zip"
     headers = {**DEFAULT_HEADERS, "Accept": "*/*"}
     resp = httpx.get(url, headers=headers, timeout=120, follow_redirects=True)
     resp.raise_for_status()
@@ -353,3 +356,27 @@ def download_ceap_csv_stream(ano: int) -> list[dict[str, Any]]:
             text_lines = (line.decode("utf-8-sig", errors="replace") for line in raw_file)
             reader = csv.DictReader(text_lines, delimiter=";")
             return list(reader)
+
+
+def stream_ceap_csv_rows(ano: int):
+    """Generator que faz yield de cada linha do CSV ZIP sem carregar tudo em memoria."""
+    import csv
+    import io
+    import zipfile
+
+    import httpx
+
+    url = f"https://www.camara.leg.br/cotas/Ano-{ano}.csv.zip"
+    headers = {**DEFAULT_HEADERS, "Accept": "*/*"}
+    with httpx.stream("GET", url, headers=headers, timeout=120, follow_redirects=True) as resp:
+        resp.raise_for_status()
+        raw_bytes = io.BytesIO()
+        for chunk in resp.iter_bytes(chunk_size=8192):
+            raw_bytes.write(chunk)
+        raw_bytes.seek(0)
+        with zipfile.ZipFile(raw_bytes) as archive:
+            csv_name = archive.namelist()[0]
+            with archive.open(csv_name) as raw_file:
+                text_lines = (line.decode("utf-8-sig", errors="replace") for line in raw_file)
+                reader = csv.DictReader(text_lines, delimiter=";")
+                yield from reader

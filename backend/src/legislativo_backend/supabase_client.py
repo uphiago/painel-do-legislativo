@@ -1,11 +1,18 @@
 from __future__ import annotations
 
+import logging
 import os
+import time
 from typing import Any
 
 from dotenv import load_dotenv
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
+
+MAX_RETRIES = 3
+RETRY_BACKOFF = 1.5
 
 
 class SupabaseClient:
@@ -32,7 +39,7 @@ class SupabaseClient:
             )
         return self._client
 
-    def _upsert(self, table: str, rows: list[dict[str, Any]], on_conflict: str = "source,external_id") -> int:
+    def _upsert(self, table: str, rows: list[dict[str, Any]], on_conflict: str = "source,external_id", retries: int = MAX_RETRIES) -> int:
         if not rows:
             return 0
         seen: set[tuple] = set()
@@ -46,10 +53,72 @@ class SupabaseClient:
         if not deduped:
             return 0
         client = self._get_client()
-        response = client.table(table).upsert(deduped, on_conflict=on_conflict).execute()
-        if hasattr(response, "error") and response.error:
-            raise RuntimeError(f"Supabase upsert error on {table}: {response.error}")
-        return len(response.data) if response.data else 0
+        for attempt in range(1, retries + 1):
+            try:
+                response = client.table(table).upsert(deduped, on_conflict=on_conflict).execute()
+                if hasattr(response, "error") and response.error:
+                    raise RuntimeError(f"Supabase upsert error on {table}: {response.error}")
+                return len(response.data) if response.data else 0
+            except Exception:
+                if attempt == retries:
+                    raise
+                logger.warning(
+                    "Supabase upsert attempt %d/%d failed for table %s, retrying...",
+                    attempt, retries, table, exc_info=True,
+                )
+                time.sleep(RETRY_BACKOFF * (2 ** (attempt - 1)))
+        return 0
+
+    def upsert_raw_payload(self, source: str, kind: str, external_id: str, payload: dict[str, Any]) -> int:
+        if not self._enabled:
+            return 0
+        from datetime import UTC, datetime
+        row = {
+            "source": source,
+            "kind": kind,
+            "external_id": external_id,
+            "payload_json": payload,
+            "collected_at": datetime.now(UTC).isoformat(),
+        }
+        return self._upsert("raw_payloads", [row], on_conflict="source,kind,external_id")
+
+    def record_sync_run(
+        self,
+        job: str,
+        source: str,
+        status: str,
+        records_count: int,
+        metadata: dict[str, Any] | None = None,
+    ) -> None:
+        if not self._enabled:
+            return
+        from datetime import UTC, datetime
+        now = datetime.now(UTC).isoformat()
+        client = self._get_client()
+        client.table("sync_runs").insert({
+            "job": job,
+            "source": source,
+            "status": status,
+            "started_at": now,
+            "finished_at": now,
+            "records_count": records_count,
+            "metadata_json": metadata or {},
+        }).execute()
+
+    def refresh_materialized_views(self) -> None:
+        if not self._enabled:
+            return
+        client = self._get_client()
+        for view in ["parlamentar_kpis", "despesas_por_categoria", "proposition_ultimo_status"]:
+            try:
+                client.rpc("refresh_view", {"view_name": view}).execute()
+            except Exception:
+                logger.debug("refresh_materialized_views via RPC falhou para %s, tentando SQL direto", view)
+                try:
+                    sql = f"REFRESH MATERIALIZED VIEW {view}"
+                    client.rpc("exec_sql", {"query": sql}).execute()
+                except Exception:
+                    logger.warning("Nao foi possivel refrescar materialized view %s", view, exc_info=True)
 
     def upsert_parlamentarians(self, rows: list[dict[str, Any]]) -> int:
         return self._upsert("parlamentarians", rows)
@@ -98,3 +167,6 @@ class SupabaseClient:
 
     def upsert_proposition_types(self, rows: list[dict[str, Any]]) -> int:
         return self._upsert("proposition_types", rows, on_conflict="codigo")
+
+    def upsert_discursos(self, rows: list[dict[str, Any]]) -> int:
+        return self._upsert("discursos", rows, on_conflict="senador_codigo,data_discurso")

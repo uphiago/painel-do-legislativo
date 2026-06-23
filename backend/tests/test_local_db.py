@@ -109,7 +109,7 @@ def test_upsert_core_entities_and_raw_payloads(tmp_path: Path):
     db.upsert_expenses(
         [
             DespesaResumo(
-                source="senado_ceaps",
+                source="senado",
                 external_id="2229299",
                 parlamentar_external_id="5672",
                 parlamentar_nome="ALAN RICK",

@@ -35,7 +35,7 @@ const RECORTE_LIMIT = 6;
 
 export default function Home() {
   const { parlamentares, resumoCards, proposicoes, citizenQuestions,
-          legislativeHighlights, connected, loading } = useLiveDashboard();
+          legislativeHighlights, connected, error, loading } = useLiveDashboard();
 
   const [activeId, setActiveId] = useState(parlamentares[0]?.id ?? "");
   const [activeTab, setActiveTab] = useState(tabs[0]);
@@ -96,14 +96,21 @@ export default function Home() {
   const clearCompare = () => { setCompareA(null); setCompareB(null); setCompareData(null); };
 
   const loadStatsFn = async (supabase: ReturnType<typeof createClient>, extId: string): Promise<ComparacaoStats> => {
-    const [parl, propC, orgC, frtC] = await Promise.all([
+    const [parl, kpi] = await Promise.all([
       supabase.from("parlamentarians").select("nome,partido,uf").eq("external_id", extId).single(),
-      supabase.from("proposition_authors").select("*", { count: "exact", head: true }).eq("parliamentarian_external_id", extId),
-      supabase.from("organ_memberships").select("*", { count: "exact", head: true }).eq("parliamentarian_external_id", extId),
-      supabase.from("front_memberships").select("*", { count: "exact", head: true }).eq("parliamentarian_external_id", extId),
+      supabase.from("parlamentar_kpis").select("total_autorias,total_orgaos,total_frentes,despesa_total").eq("external_id", extId).single(),
     ]);
     const p = parl.data;
-    return { nome: p?.nome ?? extId, partido: p?.partido ?? "?", uf: p?.uf ?? "?", proposicoes: propC.count ?? 0, orgaos: orgC.count ?? 0, frentes: frtC.count ?? 0 };
+    const k = kpi.data;
+    return {
+      nome: p?.nome ?? extId,
+      partido: p?.partido ?? "?",
+      uf: p?.uf ?? "?",
+      proposicoes: k?.total_autorias ?? 0,
+      orgaos: k?.total_orgaos ?? 0,
+      frentes: k?.total_frentes ?? 0,
+      despesas: k?.despesa_total ?? 0,
+    };
   };
 
   // Filter + sort parliamentarians based on search controls
@@ -176,6 +183,7 @@ export default function Home() {
             <span className="hero-chip">Painel do Legislativo</span>
             {loading && <span className="hero-chip" style={{background:"#d97706",marginLeft:8}}>⏳ Carregando...</span>}
             {connected && <span className="hero-chip" style={{background:"#166534",marginLeft:8}}>● Dados oficiais</span>}
+            {error && <span className="hero-chip" style={{background:"#b91c1c",marginLeft:8}}>⚠ Desconectado — dados mock</span>}
           </div>
           <p className="eyebrow">Acompanhamento público</p>
           <h1>Atuação parlamentar em linguagem clara</h1>
@@ -687,13 +695,21 @@ export default function Home() {
                     ["Proposições", "proposicoes"],
                     ["Órgãos", "orgaos"],
                     ["Frentes", "frentes"],
-                  ] as [string, keyof ComparacaoStats][]).map(([label, key]) => (
+                    ["Despesas", "despesas"],
+                  ] as [string, keyof ComparacaoStats][]).map(([label, key]) => {
+                    const valA = compareData.a[key];
+                    const valB = compareData.b[key];
+                    const fmt = key === "despesas"
+                      ? (v: number | string) => (v as number).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+                      : (v: number | string) => String(v);
+                    return (
                     <tr key={key} style={{borderBottom:"1px solid #e2e8f0"}}>
                       <td style={{padding:8,fontWeight:500}}>{label}</td>
-                      <td style={{padding:8,textAlign:"center",fontWeight:"bold",color:"#2563eb"}}>{compareData.a[key]}</td>
-                      <td style={{padding:8,textAlign:"center",fontWeight:"bold",color:"#059669"}}>{compareData.b[key]}</td>
+                      <td style={{padding:8,textAlign:"center",fontWeight:"bold",color:"#2563eb"}}>{fmt(valA)}</td>
+                      <td style={{padding:8,textAlign:"center",fontWeight:"bold",color:"#059669"}}>{fmt(valB)}</td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             )}

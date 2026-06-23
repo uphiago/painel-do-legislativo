@@ -72,7 +72,7 @@ def test_normalize_senado_ceaps_maps_reimbursed_value():
         }
     )
 
-    assert result.source == "senado_ceaps"
+    assert result.source == "senado"
     assert result.external_id == "2229299"
     assert result.parlamentar_external_id == "5672"
     assert result.valor == 1030.22
@@ -117,8 +117,8 @@ def test_normalize_camara_ceap_archive_row_maps_annual_csv_fields():
         }
     )
 
-    assert result.source == "camara_ceap_arquivo"
-    assert result.external_id == "7696122"
+    assert result.source == "camara_ceap"
+    assert result.external_id == "ceap-2024-2-204379-NF-1"
     assert result.parlamentar_external_id == "204379"
     assert result.parlamentar_nome == "Deputada Teste"
     assert result.valor == 450.2

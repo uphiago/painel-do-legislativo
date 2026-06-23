@@ -85,7 +85,7 @@ def normalize_senado_senador(item: dict[str, Any]) -> ParlamentarResumo:
 
 def normalize_senado_ceaps(item: dict[str, Any]) -> DespesaResumo:
     return DespesaResumo(
-        source="senado_ceaps",
+        source="senado",
         external_id=str(item["id"]),
         parlamentar_external_id=str(item.get("codSenador")) if item.get("codSenador") else None,
         parlamentar_nome=item.get("nomeSenador"),
@@ -117,9 +117,16 @@ def normalize_camara_despesa(item: dict[str, Any], deputado_id: int) -> DespesaR
 
 def normalize_camara_ceap_archive_row(item: dict[str, Any]) -> DespesaResumo:
     doc_id = item.get("ideDocumento") or item.get("txtNumero")
+    externo = str(doc_id) if doc_id else ""
+    if externo:
+        dep = _blank_to_none(item.get("nuDeputadoId")) or "0"
+        ano = str(_int_or_none(item.get("numAno")) or 0)
+        mes = str(_int_or_none(item.get("numMes")) or 0)
+        doc = _blank_to_none(item.get("txtNumero")) or "0"
+        externo = f"ceap-{ano}-{mes}-{dep}-{doc}"
     return DespesaResumo(
-        source="camara_ceap_arquivo",
-        external_id=str(doc_id) if doc_id else "",
+        source="camara_ceap",
+        external_id=externo,
         parlamentar_external_id=_blank_to_none(item.get("nuDeputadoId")),
         parlamentar_nome=_blank_to_none(item.get("txNomeParlamentar")),
         ano=_int_or_none(item.get("numAno")),

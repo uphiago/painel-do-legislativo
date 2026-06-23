@@ -86,4 +86,5 @@ export interface ComparacaoStats {
   proposicoes: number;
   orgaos: number;
   frentes: number;
+  despesas: number;
 }

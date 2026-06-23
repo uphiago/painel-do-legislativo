@@ -20,6 +20,7 @@ export function useLiveDashboard() {
   const [proposicoes, setProposicoes] = useState(mockProposicoes);
   const [despesas, setDespesas] = useState(mockDespesas);
   const [connected, setConnected] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -43,12 +44,12 @@ export function useLiveDashboard() {
           ]);
         }
 
-        // Parliamentarians
+        // Parliamentarians — todos (593+), sem truncar
         const { data: parlData } = await supabase
           .from("parlamentarians")
           .select("external_id, nome, casa, uf, partido, foto_url")
           .order("nome")
-          .limit(100);
+          .limit(600);
 
         if (!cancelled && parlData) {
           const enriched = await enrichParlamentares(supabase, parlData);
@@ -72,35 +73,28 @@ export function useLiveDashboard() {
           }
         }
 
-        // Expenses
+        // Expenses aggregated server-side via materialized view
         const { data: expData } = await supabase
-          .from("expenses")
-          .select("categoria, valor")
-          .not("categoria", "is", null)
-          .neq("categoria", "Test")
-          .limit(20000);
+          .from("despesas_por_categoria")
+          .select("categoria, total")
+          .order("total", { ascending: false })
+          .limit(5);
 
-        if (!cancelled && expData) {
-          const grouped: Record<string, number> = {};
-          for (const e of expData) {
-            const cat = e.categoria ?? "Outros";
-            grouped[cat] = (grouped[cat] ?? 0) + (e.valor ?? 0);
-          }
-          const sorted = Object.entries(grouped)
-            .sort(([, a], [, b]) => b - a)
-            .slice(0, 5);
-          const total = sorted.reduce((s, [, v]) => s + v, 0) || 1;
-          const mapped = sorted.map(([cat, val]) => ({
-            categoria: cat,
-            valor: val.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
-            percentual: Math.round((val / total) * 100),
+        if (!cancelled && expData && expData.length > 0) {
+          const total = expData.reduce((s, e) => s + (e.total ?? 0), 0) || 1;
+          const mapped = expData.map((e) => ({
+            categoria: e.categoria ?? "Outros",
+            valor: (e.total ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
+            percentual: total > 0 ? Math.round(((e.total ?? 0) / total) * 100) : 0,
           }));
           if (mapped.length > 0) setDespesas(mapped);
         }
 
         if (!cancelled) setConnected(true);
-      } catch {
-        // Silently keep mocks
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.warn("Falha ao carregar dados do Supabase.", msg);
+        if (!cancelled) setError(msg);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -118,6 +112,7 @@ export function useLiveDashboard() {
     citizenQuestions,
     legislativeHighlights,
     connected,
+    error,
     loading,
   };
 }
@@ -141,48 +136,34 @@ async function enrichParlamentares(
 
   const ids = rows.map((r) => r.external_id);
 
-  // Contagens EXATAS por parlamentar (head-count). Evita o bug do fetch em
-  // lote, que era truncado no limite default de 1000 linhas do PostgREST e
-  // subcontava autores prolificos (ex.: 272 em vez de 2235). ~1.6s para 100.
-  const [countsList, expRes] = await Promise.all([
-    Promise.all(
-      rows.map(async (r) => {
-        const [pc, oc] = await Promise.all([
-          supabase
-            .from("proposition_authors")
-            .select("*", { count: "exact", head: true })
-            .eq("parliamentarian_external_id", r.external_id),
-          supabase
-            .from("organ_memberships")
-            .select("*", { count: "exact", head: true })
-            .eq("parliamentarian_external_id", r.external_id),
-        ]);
-        return { id: r.external_id, prop: pc.count ?? 0, org: oc.count ?? 0 };
-      }),
-    ),
-    supabase
-      .from("expenses")
-      .select("parlamentar_external_id, valor")
-      .in("parlamentar_external_id", ids)
-      .limit(50000),
-  ]);
+  // Usa a materialized view parlamentar_kpis (1 query em vez de 200+ N+1).
+  // Inclui total_autorias, autoria_principal, total_orgaos, total_frentes, despesa_total.
+  const { data: kpis } = await supabase
+    .from("parlamentar_kpis")
+    .select("external_id, total_autorias, autoria_principal, total_orgaos, total_frentes, despesa_total")
+    .in("external_id", ids);
 
-  const propCounts: Record<string, number> = {};
-  const orgCounts: Record<string, number> = {};
-  const expTotals: Record<string, number> = {};
-
-  for (const c of countsList) {
-    propCounts[c.id] = c.prop;
-    orgCounts[c.id] = c.org;
-  }
-  for (const e of expRes.data ?? []) {
-    const key = e.parlamentar_external_id as string;
-    expTotals[key] = (expTotals[key] ?? 0) + (e.valor ?? 0);
+  const kpiMap: Record<string, {
+    total_autorias: number;
+    autoria_principal: number;
+    total_orgaos: number;
+    total_frentes: number;
+    despesa_total: number;
+  }> = {};
+  for (const k of kpis ?? []) {
+    kpiMap[k.external_id] = {
+      total_autorias: k.total_autorias ?? 0,
+      autoria_principal: k.autoria_principal ?? 0,
+      total_orgaos: k.total_orgaos ?? 0,
+      total_frentes: k.total_frentes ?? 0,
+      despesa_total: k.despesa_total ?? 0,
+    };
   }
 
   return rows.map((r, i) => {
-    const orgaos = orgCounts[r.external_id] ?? 0;
-    const total = expTotals[r.external_id] ?? 0;
+    const kpi = kpiMap[r.external_id];
+    const orgaos = kpi?.total_orgaos ?? 0;
+    const total = kpi?.despesa_total ?? 0;
     const isSenado = r.casa === "senado";
     return {
       id: r.external_id,
@@ -194,8 +175,8 @@ async function enrichParlamentares(
       partido: r.partido ?? "Sem partido",
       mandato: "2023-2027",
       temas: [],
-      proposicoes: propCounts[r.external_id] ?? 0,
-      autoriaPrincipal: 0, // contagem exata de autoria principal vem no detalhe do perfil
+      proposicoes: kpi?.total_autorias ?? 0,
+      autoriaPrincipal: kpi?.autoria_principal ?? 0,
       despesas: total > 0 ? brl(total) : "Sem dados",
       despesasValor: total,
       presenca: pluralOrgaos(orgaos),
@@ -218,11 +199,11 @@ async function enrichProposicoes(
 
   const ids = rows.map((r) => r.external_id);
 
+  // Usa a materialized view com o ultimo status de cada proposicao.
   const { data: tracks } = await supabase
-    .from("proposition_trackings")
+    .from("proposition_ultimo_status")
     .select("proposition_external_id, descricao_situacao, orgao_sigla, despacho")
-    .in("proposition_external_id", ids)
-    .order("sequencia", { ascending: false });
+    .in("proposition_external_id", ids);
 
   type TrackSel = {
     proposition_external_id: string;
@@ -232,9 +213,7 @@ async function enrichProposicoes(
   };
   const latestTrack: Record<string, TrackSel> = {};
   for (const t of (tracks ?? []) as TrackSel[]) {
-    if (!latestTrack[t.proposition_external_id]) {
-      latestTrack[t.proposition_external_id] = t;
-    }
+    latestTrack[t.proposition_external_id] = t;
   }
 
   return rows.map((r) => ({
@@ -275,13 +254,13 @@ export async function fetchParlamentarDetalhe(
   supabase: ReturnType<typeof createClient>,
   externalId: string,
 ): Promise<ParlamentarDetalhe> {
-  // KPIs exatos via head-count (mesma base da comparacao).
-  const [propCountRes, autoriaCountRes, orgCountRes, authList] = await Promise.all([
-    supabase.from("proposition_authors").select("*", { count: "exact", head: true }).eq("parliamentarian_external_id", externalId),
-    supabase.from("proposition_authors").select("*", { count: "exact", head: true }).eq("parliamentarian_external_id", externalId).eq("proponent", true),
-    supabase.from("organ_memberships").select("*", { count: "exact", head: true }).eq("parliamentarian_external_id", externalId),
+  // KPIs via materialized view (1 query em vez de 3 head-counts + 2 data queries).
+  const [kpiRes, authList] = await Promise.all([
+    supabase.from("parlamentar_kpis").select("total_autorias, autoria_principal, total_orgaos, despesa_total").eq("external_id", externalId).single(),
     supabase.from("proposition_authors").select("proposition_external_id").eq("parliamentarian_external_id", externalId).limit(400),
   ]);
+
+  const kpi = kpiRes.data;
   const auth = authList.data;
 
   const ids = [...new Set((auth ?? []).map((a) => a.proposition_external_id as string))].slice(0, 200);
@@ -314,6 +293,7 @@ export async function fetchParlamentarDetalhe(
       .map(([k]) => k);
   }
 
+  // Despesas agregadas por categoria via aggregacao server-side
   const { data: exp } = await supabase
     .from("expenses")
     .select("categoria, valor")
@@ -321,12 +301,11 @@ export async function fetchParlamentarDetalhe(
     .limit(5000);
 
   const grouped: Record<string, number> = {};
-  let despesaTotal = 0;
+  let despesaTotal = kpi?.despesa_total ?? 0;
   for (const e of exp ?? []) {
     const cat = (e.categoria as string | null) ?? "Outros";
     const v = (e.valor as number) ?? 0;
     grouped[cat] = (grouped[cat] ?? 0) + v;
-    despesaTotal += v;
   }
   const sorted = Object.entries(grouped).sort(([, a], [, b]) => b - a).slice(0, 5);
   const maxCat = sorted.length ? sorted[0][1] : 1;
@@ -337,9 +316,9 @@ export async function fetchParlamentarDetalhe(
   }));
 
   const kpis: ParlamentarKpis = {
-    proposicoes: propCountRes.count ?? 0,
-    autoria: autoriaCountRes.count ?? 0,
-    orgaos: orgCountRes.count ?? 0,
+    proposicoes: kpi?.total_autorias ?? 0,
+    autoria: kpi?.autoria_principal ?? 0,
+    orgaos: kpi?.total_orgaos ?? 0,
     despesaTotal,
   };
 

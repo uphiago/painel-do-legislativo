@@ -526,10 +526,19 @@ class LocalDatabase:
         now = _now()
         with self.connect() as connection:
             cursor = connection.executemany(
-                """INSERT OR IGNORE INTO propositions
+                """INSERT INTO propositions
                    (source, external_id, casa, sigla, numero, ano, ementa,
                     data_apresentacao, autor_principal, updated_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                   ON CONFLICT(source, external_id) DO UPDATE SET
+                     casa = excluded.casa,
+                     sigla = excluded.sigla,
+                     numero = excluded.numero,
+                     ano = excluded.ano,
+                     ementa = excluded.ementa,
+                     data_apresentacao = excluded.data_apresentacao,
+                     autor_principal = excluded.autor_principal,
+                     updated_at = excluded.updated_at""",
                 [
                     (
                         row.source, row.external_id, row.casa, row.sigla,

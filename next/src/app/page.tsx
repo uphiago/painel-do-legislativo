@@ -2,7 +2,28 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, BarChart3, FileText, Gavel, Search, Users } from "lucide-react";
 
-export default function Home() {
+async function fetchLiveStats() {
+  try {
+    const { createClient } = await import("@/utils/supabase/server");
+    const supabase = await createClient();
+    const [parl, prop, exp] = await Promise.all([
+      supabase.from("parlamentarians").select("*", { count: "exact", head: true }),
+      supabase.from("propositions").select("*", { count: "exact", head: true }),
+      supabase.from("expenses").select("*", { count: "exact", head: true }),
+    ]);
+    return {
+      parlamentares: parl.count ?? 594,
+      proposicoes: `${Math.round((prop.count ?? 107000) / 1000)} mil+`,
+      despesas: `${Math.round((exp.count ?? 193000) / 1000)} mil+`,
+    };
+  } catch {
+    return { parlamentares: 594, proposicoes: "107 mil+", despesas: "193 mil+" };
+  }
+}
+
+export default async function Home() {
+  const stats = await fetchLiveStats();
+
   return (
     <main className="landing-shell">
       <section className="landing-hero">
@@ -33,18 +54,18 @@ export default function Home() {
           <div className="landing-stats" aria-label="Resumo">
             <article>
               <Users aria-hidden="true" size={18} />
-              <strong>594</strong>
+              <strong>{stats.parlamentares}</strong>
               <span>perfis parlamentares</span>
             </article>
             <article>
               <FileText aria-hidden="true" size={18} />
-              <strong>107 mil+</strong>
-              <span>proposições de 2025</span>
+              <strong>{stats.proposicoes}</strong>
+              <span>proposições</span>
             </article>
             <article>
               <Gavel aria-hidden="true" size={18} />
-              <strong>193 mil+</strong>
-              <span>despesas CEAP 2025</span>
+              <strong>{stats.despesas}</strong>
+              <span>despesas CEAP</span>
             </article>
           </div>
         </div>

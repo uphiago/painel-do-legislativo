@@ -42,7 +42,36 @@ def get_processo_detail(processo_id: int) -> dict[str, Any]:
 
 
 def list_senador_ceaps(ano: int) -> list[dict[str, Any]]:
-    return fetch_json(f"{ADMIN_URL}/senadores/despesas_ceaps/{ano}")
+    """Retorna todas as CEAPS de um ano, paginando automaticamente."""
+    return list_all_senador_ceaps(ano)
+
+
+def list_all_senador_ceaps(ano: int, page_size: int = 1000) -> list[dict[str, Any]]:
+    """Coleta TODAS as CEAPS de um ano via paginacao real da API."""
+    rows: list[dict[str, Any]] = []
+    page = 1
+    while True:
+        payload = fetch_json(
+            f"{ADMIN_URL}/senadores/despesas_ceaps/{ano}",
+            params={"pagina": page, "tamanhoPagina": page_size},
+        )
+        if isinstance(payload, list):
+            rows.extend(payload)
+            if len(payload) < page_size:
+                break
+            page += 1
+        elif isinstance(payload, dict):
+            items = payload.get("data") or payload.get("dados") or payload.get("items", [])
+            if not items:
+                break
+            rows.extend(items if isinstance(items, list) else [items])
+            total = payload.get("total") or payload.get("totalRegistros", 0)
+            if len(rows) >= total:
+                break
+            page += 1
+        else:
+            break
+    return rows
 
 
 def list_senador_mandatos(codigo: int) -> dict[str, Any]:

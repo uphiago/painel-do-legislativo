@@ -136,7 +136,10 @@ def enrich_deputado_completo(
         if prop_rows:
             database.upsert_propositions(prop_rows)
             if supabase:
-                supabase.upsert_propositions([r.model_dump() for r in prop_rows])
+                try:
+                    supabase.upsert_propositions([r.model_dump() for r in prop_rows])
+                except Exception:
+                    logger.warning("Supabase: falha ao upsert proposicoes deputado %s", deputado_id, exc_info=True)
             c["propositions"] = len(prop_rows)
 
         for ano in anos:
@@ -146,7 +149,10 @@ def enrich_deputado_completo(
                     exp_rows = [normalize_camara_despesa(dr, deputado_id) for dr in despesas]
                     database.upsert_expenses(exp_rows)
                     if supabase:
-                        supabase.upsert_expenses([r.model_dump() for r in exp_rows])
+                        try:
+                            supabase.upsert_expenses([r.model_dump() for r in exp_rows])
+                        except Exception:
+                            logger.warning("Supabase: falha ao upsert despesas deputado %s ano %s", deputado_id, ano, exc_info=True)
                     c["expenses"] += len(exp_rows)
             except Exception:
                 logger.warning(
@@ -167,6 +173,8 @@ def enrich_deputado_completo(
             source="camara", kind="deputado-full",
             external_id=str(deputado_id), payload=payload,
         )
+        if supabase:
+            supabase.upsert_raw_payload("camara", "deputado-full", str(deputado_id), payload)
 
         orgaos_list = orgaos_raw.get("dados", [])
         if orgaos_list:
@@ -177,7 +185,10 @@ def enrich_deputado_completo(
             ]
             database.upsert_organs(organ_rows)
             if supabase:
-                supabase.upsert_organs(organ_rows)
+                try:
+                    supabase.upsert_organs(organ_rows)
+                except Exception:
+                    logger.warning("Supabase: falha ao upsert orgaos deputado %s", deputado_id, exc_info=True)
             membership_rows = [
                 {"parliamentarian_external_id": str(deputado_id), "source": "camara",
                  "organ_external_id": str(o.get("idOrgao")), "role": o.get("titulo"),
@@ -186,7 +197,10 @@ def enrich_deputado_completo(
             ]
             database.upsert_organ_memberships(membership_rows)
             if supabase:
-                supabase.upsert_organ_memberships(membership_rows)
+                try:
+                    supabase.upsert_organ_memberships(membership_rows)
+                except Exception:
+                    logger.warning("Supabase: falha ao upsert organ_memberships deputado %s", deputado_id, exc_info=True)
 
         frentes_list = frentes_raw.get("dados", [])
         if frentes_list:
@@ -196,7 +210,10 @@ def enrich_deputado_completo(
             ]
             database.upsert_frentes(front_rows)
             if supabase:
-                supabase.upsert_frentes(front_rows)
+                try:
+                    supabase.upsert_frentes(front_rows)
+                except Exception:
+                    logger.warning("Supabase: falha ao upsert frentes deputado %s", deputado_id, exc_info=True)
             fm_rows = [
                 {"front_external_id": str(f["id"]),
                  "parliamentarian_external_id": str(deputado_id),
@@ -204,7 +221,10 @@ def enrich_deputado_completo(
             ]
             database.upsert_front_memberships(fm_rows)
             if supabase:
-                supabase.upsert_front_memberships(fm_rows)
+                try:
+                    supabase.upsert_front_memberships(fm_rows)
+                except Exception:
+                    logger.warning("Supabase: falha ao upsert front_memberships deputado %s", deputado_id, exc_info=True)
 
         mandate_data = dados.get("ultimoStatus", {})
         mandate_rows = [{
@@ -218,7 +238,10 @@ def enrich_deputado_completo(
         }]
         database.upsert_mandates(mandate_rows)
         if supabase:
-            supabase.upsert_mandates(mandate_rows)
+            try:
+                supabase.upsert_mandates(mandate_rows)
+            except Exception:
+                logger.warning("Supabase: falha ao upsert mandates deputado %s", deputado_id, exc_info=True)
 
     except Exception as exc:
         c["errors"] += 1
@@ -269,7 +292,10 @@ def enrich_senador_completo(
             proc_rows = [normalize_senado_processo(pr) for pr in processos]
             database.upsert_propositions(proc_rows)
             if supabase:
-                supabase.upsert_propositions([r.model_dump() for r in proc_rows])
+                try:
+                    supabase.upsert_propositions([r.model_dump() for r in proc_rows])
+                except Exception:
+                    logger.warning("Supabase: falha ao upsert processos senador %s", codigo, exc_info=True)
             c["propositions"] = len(proc_rows)
 
         mandatos_data = mandatos_raw.get("MandatoParlamentar", {})
@@ -302,6 +328,8 @@ def enrich_senador_completo(
             source="senado", kind="senador-full",
             external_id=str(codigo), payload=payload,
         )
+        if supabase:
+            supabase.upsert_raw_payload("senado", "senador-full", str(codigo), payload)
 
     except Exception as exc:
         c["errors"] += 1
@@ -574,6 +602,15 @@ def collect_bulk_complete_year(
         records_count=c["propositions"] + c["themes"] + c["authors"],
         metadata={"ano": ano, **c},
     )
+    if supabase:
+        supabase.record_sync_run(
+            job="bulk:complete-year",
+            source="camara",
+            status="success" if c["errors"] == 0 else "partial",
+            records_count=c["propositions"] + c["themes"] + c["authors"],
+            metadata={"ano": ano, **c},
+        )
+        supabase.refresh_materialized_views()
     return c
 
 
@@ -708,6 +745,15 @@ def full_pipeline(
         records_count=camara_total + senado_total,
         metadata=results,
     )
+    if supabase:
+        supabase.record_sync_run(
+            job="pipeline:full",
+            source="all",
+            status="success",
+            records_count=camara_total + senado_total,
+            metadata=results,
+        )
+        supabase.refresh_materialized_views()
 
     return results
 
@@ -747,6 +793,14 @@ def enrich_proposicoes_incremental(
         records_count=totals["processed"],
         metadata={**totals, "min_ano": min_ano, "pending_remaining": total_pending - totals["processed"]},
     )
+    if supabase:
+        supabase.record_sync_run(
+            job="pipeline:enrich-proposicoes-incremental",
+            source="camara",
+            status="success" if totals["errors"] == 0 else "partial",
+            records_count=totals["processed"],
+            metadata={**totals, "min_ano": min_ano, "pending_remaining": total_pending - totals["processed"]},
+        )
     return totals
 
 
@@ -791,6 +845,14 @@ def collect_bulk_ceap_year(
             records_count=c["expenses"],
             metadata={"ano": ano},
         )
+        if supabase:
+            supabase.record_sync_run(
+                job="bulk:ceap-year",
+                source="camara",
+                status="success",
+                records_count=c["expenses"],
+                metadata={"ano": ano},
+            )
     except Exception as exc:
         c["errors"] += 1
         database.upsert_raw_payload(
@@ -854,7 +916,7 @@ def collect_discursos_senado(
 
             if supabase and rows:
                 try:
-                    supabase._upsert("discursos", rows, on_conflict="senador_codigo,data_discurso")
+                    supabase.upsert_discursos(rows)
                 except Exception:
                     logger.warning(
                         "Falha ao sincronizar discursos com Supabase", exc_info=True
@@ -870,4 +932,12 @@ def collect_discursos_senado(
         records_count=c["discursos"],
         metadata={**c, "limit": limit, "offset": offset},
     )
+    if supabase:
+        supabase.record_sync_run(
+            job="pipeline:discursos-senado",
+            source="senado",
+            status="success" if c["erros"] == 0 else "partial",
+            records_count=c["discursos"],
+            metadata={**c, "limit": limit, "offset": offset},
+        )
     return c
