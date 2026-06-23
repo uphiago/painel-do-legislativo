@@ -629,7 +629,7 @@ def enrich_deputados(
     totals: dict[str, int] = {}
     parlamentares = database.list_parliamentarians(source="camara", limit=limit, offset=offset)
     enriched = database.get_enriched_parliamentarian_ids("camara")
-    pending = [(int(p["external_id"]), p["nome"]) for p in parlamentares if p["external_id"] not in enriched]
+    pending = [(int(p["external_id"]), p.get("name", p.get("nome", "?"))) for p in parlamentares if p["external_id"] not in enriched]
     skipped = len(parlamentares) - len(pending)
     totals["skipped"] = skipped
 
@@ -671,7 +671,7 @@ def enrich_senadores(
     totals: dict[str, int] = {}
     senadores = database.list_parliamentarians(source="senado", limit=limit, offset=offset)
     enriched = database.get_enriched_parliamentarian_ids("senado")
-    pending = [(int(s["external_id"]), s["nome"]) for s in senadores if s["external_id"] not in enriched]
+    pending = [(int(s["external_id"]), s.get("name", s.get("nome", "?"))) for s in senadores if s["external_id"] not in enriched]
     skipped = len(senadores) - len(pending)
     totals["skipped"] = skipped
 
