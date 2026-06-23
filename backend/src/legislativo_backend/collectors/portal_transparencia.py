@@ -1,17 +1,34 @@
 from __future__ import annotations
 
+import logging
 import os
+import threading as _threading
+import time as _time
 from typing import Any
 
+import httpx
 from dotenv import load_dotenv
-
-from legislativo_backend.http import fetch_json
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 load_dotenv()
 
+logger = logging.getLogger(__name__)
+
 BASE_URL = "https://api.portaldatransparencia.gov.br/api-de-dados"
+PORTAL_RATE_LIMIT = 2.0  # req/segundo (conservador ~30/min)
 
 API_KEY: str | None = None
+_last_request = 0.0
+_lock = _threading.Lock()
+
+
+def _wait() -> None:
+    global _last_request
+    with _lock:
+        elapsed = _time.monotonic() - _last_request
+        if elapsed < PORTAL_RATE_LIMIT:
+            _time.sleep(PORTAL_RATE_LIMIT - elapsed)
+        _last_request = _time.monotonic()
 
 
 def _get_api_key() -> str:
@@ -26,8 +43,22 @@ def _get_api_key() -> str:
     return API_KEY
 
 
-def _headers() -> dict[str, str]:
-    return {"chave-api-dados": _get_api_key()}
+@retry(
+    retry=retry_if_exception_type((httpx.TimeoutException, httpx.TransportError, httpx.HTTPStatusError)),
+    wait=wait_exponential(multiplier=0.5, min=0.5, max=8),
+    stop=stop_after_attempt(3),
+    reraise=True,
+)
+def _fetch(url: str, params: dict[str, Any] | None = None) -> Any:
+    _wait()
+    headers = {
+        "Accept": "application/json",
+        "chave-api-dados": _get_api_key(),
+    }
+    with httpx.Client(headers=headers, timeout=30, follow_redirects=True) as client:
+        resp = client.get(url, params=params)
+        resp.raise_for_status()
+        return resp.json()
 
 
 def list_emendas(
@@ -44,7 +75,7 @@ def list_emendas(
         params["ano"] = ano
     if uf:
         params["uf"] = uf
-    return fetch_json(f"{BASE_URL}/emendas", params=params)
+    return _fetch(f"{BASE_URL}/emendas", params=params)
 
 
 def list_all_emendas(

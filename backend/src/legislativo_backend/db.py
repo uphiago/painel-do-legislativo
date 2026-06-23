@@ -866,7 +866,6 @@ CREATE TABLE IF NOT EXISTS emendas (
   objeto TEXT,
   uf TEXT,
   orgao_concedente TEXT,
-  data_publicacao TEXT,
   updated_at TEXT NOT NULL,
   UNIQUE(codigo_emenda)
 );

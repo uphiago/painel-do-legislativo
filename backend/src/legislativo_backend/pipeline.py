@@ -1068,6 +1068,17 @@ def collect_votacoes_ano(
     return c
 
 
+def _parse_brl(value: str) -> float:
+    """Converte string monetaria brasileira (1.234,56) para float."""
+    if not value or not isinstance(value, str):
+        return 0
+    cleaned = value.replace(".", "").replace(",", ".").strip()
+    try:
+        return float(cleaned)
+    except ValueError:
+        return 0
+
+
 def _extract_proposicao_id(votacao: dict) -> str | None:
     proposicoes = votacao.get("proposicoes", [])
     if isinstance(proposicoes, list) and proposicoes:
@@ -1106,17 +1117,21 @@ def collect_emendas_portal(
     for item in rows:
         if not isinstance(item, dict):
             continue
+        localidade = str(item.get("localidadeDoGasto", ""))
+        uf = ""
+        if " - " in localidade:
+            uf = localidade.rsplit(" - ", 1)[-1].strip()
+        val = _parse_brl(item.get("valorPago") or item.get("valorEmpenhado", "0"))
         emenda_rows.append({
-            "codigo_emenda": str(item.get("codigoEmenda") or item.get("codigo", "")),
+            "codigo_emenda": str(item.get("codigoEmenda", "")),
             "ano": item.get("ano") or ano,
-            "numero": str(item.get("numero", "")),
-            "tipo": item.get("tipoEmenda") or item.get("tipo", ""),
-            "autor": item.get("autor") or item.get("nomeAutor", ""),
-            "valor": float(item.get("valorEmenda") or item.get("valor", 0)),
-            "objeto": item.get("objeto") or item.get("funcao", ""),
-            "uf": item.get("uf") or item.get("ufEmenda", ""),
-            "orgao_concedente": item.get("orgaoConcedente") or item.get("orgao", ""),
-            "data_publicacao": item.get("dataPublicacao", ""),
+            "numero": str(item.get("numeroEmenda", "")),
+            "tipo": str(item.get("tipoEmenda", "")),
+            "autor": str(item.get("nomeAutor") or item.get("autor", "")),
+            "valor": val,
+            "objeto": str(item.get("funcao") or ""),
+            "uf": uf,
+            "orgao_concedente": "",
         })
 
     if emenda_rows:
@@ -1124,10 +1139,10 @@ def collect_emendas_portal(
         with database.connect() as conn:
             conn.executemany(
                 """INSERT OR IGNORE INTO emendas
-                   (codigo_emenda, ano, numero, tipo, autor, valor, objeto, uf, orgao_concedente, data_publicacao, updated_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                   (codigo_emenda, ano, numero, tipo, autor, valor, objeto, uf, orgao_concedente, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 [(r["codigo_emenda"], r["ano"], r["numero"], r["tipo"], r["autor"],
-                  r["valor"], r["objeto"], r["uf"], r["orgao_concedente"], r["data_publicacao"], now)
+                  r["valor"], r["objeto"], r["uf"], r["orgao_concedente"], now)
                  for r in emenda_rows],
             )
         if supabase:
