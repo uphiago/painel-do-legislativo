@@ -356,7 +356,7 @@ export default function Home() {
           </div>
 
           <div className="parlamentar-list">
-            {loading && !connected ? (
+            {(loading && !connected) ? (
               [...Array(5)].map((_, i) => (
                 <div className="skeleton-row" key={i}>
                   <div className="skeleton skeleton-avatar" />
@@ -364,6 +364,10 @@ export default function Home() {
                   <div className="skeleton skeleton-metric" />
                 </div>
               ))
+            ) : filteredParlamentares.length === 0 ? (
+              <p className="muted-note" style={{ padding: 24, textAlign: "center" }}>
+                Nenhum parlamentar encontrado com os filtros atuais.
+              </p>
             ) : (
               filteredParlamentares.map((parlamentar) => (
               <button

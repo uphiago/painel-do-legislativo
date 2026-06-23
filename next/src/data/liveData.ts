@@ -33,10 +33,11 @@ export function useLiveDashboard() {
         ]);
 
         if (!cancelled) {
+          const fmt = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(0)} mil+` : String(n);
           setResumoCards([
             { ...mockResumoCards[0], value: (parlCount.count ?? 593).toString() },
-            { ...mockResumoCards[1], value: `${((propCount.count ?? 0) / 1000).toFixed(0)} mil+` },
-            { ...mockResumoCards[2], value: `${((expCount.count ?? 0) / 1000).toFixed(0)} mil+` },
+            { ...mockResumoCards[1], value: fmt(propCount.count ?? 0) },
+            { ...mockResumoCards[2], value: fmt(expCount.count ?? 0) },
           ]);
         }
 
@@ -54,11 +55,10 @@ export function useLiveDashboard() {
           }
         }
 
-        // Recent propositions
+        // Recent propositions (Camara + Senado)
         const { data: propData } = await supabase
           .from("propositions")
           .select("external_id, sigla, numero, ano, ementa")
-          .eq("source", "camara")
           .order("ano", { ascending: false })
           .limit(20);
 

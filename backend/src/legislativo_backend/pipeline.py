@@ -1039,6 +1039,17 @@ def collect_votacoes_ano(
                     supabase.upsert_votacoes([votacao_row])
                     supabase.upsert_raw_payload(source, "votacao", str(votacao_id), detail)
 
+                # SQLite upsert da votacao
+                with database.connect() as conn:
+                    conn.execute(
+                        """INSERT OR REPLACE INTO votacoes
+                           (source, external_id, proposicao_external_id, sigla_orgao, descricao, data, aprovada, updated_at)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                        (source, str(votacao_id), votacao_row["proposicao_external_id"],
+                         votacao_row["sigla_orgao"], votacao_row["descricao"], votacao_row["data"],
+                         1 if votacao_row["aprovada"] else 0, _now()),
+                    )
+
                 database.upsert_raw_payload(
                     source=source, kind="votacao",
                     external_id=str(votacao_id), payload=detail,

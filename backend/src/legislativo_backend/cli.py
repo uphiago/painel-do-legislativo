@@ -1339,5 +1339,26 @@ def pipeline_full(
     _echo_db_summary(database)
 
 
+@pipeline_app.command("votacoes")
+def pipeline_votacoes(
+    ano: Annotated[int, typer.Option("--ano", min=2000)] = 2025,
+    db_path: DbPathOption = None,
+    supabase_sync: Annotated[bool, typer.Option("--supabase")] = False,
+) -> None:
+    """Coleta votacoes e votos de um ano da Camara."""
+    from legislativo_backend.pipeline import collect_votacoes_ano
+    from legislativo_backend.supabase_client import SupabaseClient
+
+    database = _db(db_path)
+    supabase = SupabaseClient() if supabase_sync else None
+    if supabase_sync and not supabase.enabled:
+        typer.echo("Supabase nao configurado.")
+        raise typer.Exit(1)
+
+    result = collect_votacoes_ano(database, ano, source="camara", supabase=supabase)
+    typer.echo(f"\nVotacoes {ano}: {result['votacoes']} sessoes, {result['votos']} votos, {result.get('errors', 0)} erros")
+    _echo_db_summary(database)
+
+
 if __name__ == "__main__":
     app()
