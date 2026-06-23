@@ -1080,3 +1080,72 @@ def _extract_proposicao_id(votacao: dict) -> str | None:
             parts = uri.rstrip("/").rsplit("/", 1)
             return parts[-1] if parts[-1].isdigit() else None
     return None
+
+
+def collect_emendas_portal(
+    database: LocalDatabase,
+    ano: int,
+    supabase: SupabaseClient | None = None,
+) -> dict[str, int]:
+    """Coleta emendas parlamentares do Portal da Transparencia."""
+    from legislativo_backend.collectors import portal_transparencia as pt
+
+    c: dict[str, int] = {"emendas": 0, "errors": 0}
+    try:
+        rows = pt.list_all_emendas(ano=ano)
+    except Exception as exc:
+        logger.warning("Portal da Transparencia indisponivel: %s", exc)
+        c["errors"] += 1
+        database.record_sync_run(
+            job="pipeline:emendas-portal", source="portal_transparencia",
+            status="error", records_count=0, metadata={"ano": ano, "error": str(exc)[:200]},
+        )
+        return c
+
+    emenda_rows = []
+    for item in rows:
+        if not isinstance(item, dict):
+            continue
+        emenda_rows.append({
+            "codigo_emenda": str(item.get("codigoEmenda") or item.get("codigo", "")),
+            "ano": item.get("ano") or ano,
+            "numero": str(item.get("numero", "")),
+            "tipo": item.get("tipoEmenda") or item.get("tipo", ""),
+            "autor": item.get("autor") or item.get("nomeAutor", ""),
+            "valor": float(item.get("valorEmenda") or item.get("valor", 0)),
+            "objeto": item.get("objeto") or item.get("funcao", ""),
+            "uf": item.get("uf") or item.get("ufEmenda", ""),
+            "orgao_concedente": item.get("orgaoConcedente") or item.get("orgao", ""),
+            "data_publicacao": item.get("dataPublicacao", ""),
+        })
+
+    if emenda_rows:
+        now = _now()
+        with database.connect() as conn:
+            conn.executemany(
+                """INSERT OR IGNORE INTO emendas
+                   (codigo_emenda, ano, numero, tipo, autor, valor, objeto, uf, orgao_concedente, data_publicacao, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                [(r["codigo_emenda"], r["ano"], r["numero"], r["tipo"], r["autor"],
+                  r["valor"], r["objeto"], r["uf"], r["orgao_concedente"], r["data_publicacao"], now)
+                 for r in emenda_rows],
+            )
+        if supabase:
+            try:
+                supabase.upsert_emendas(emenda_rows)
+            except Exception:
+                logger.warning("Supabase: falha ao upsert emendas", exc_info=True)
+        c["emendas"] = len(emenda_rows)
+
+    database.record_sync_run(
+        job="pipeline:emendas-portal", source="portal_transparencia",
+        status="success" if c["errors"] == 0 else "partial",
+        records_count=c["emendas"], metadata={"ano": ano},
+    )
+    if supabase:
+        supabase.record_sync_run(
+            job="pipeline:emendas-portal", source="portal_transparencia",
+            status="success" if c["errors"] == 0 else "partial",
+            records_count=c["emendas"], metadata={"ano": ano},
+        )
+    return c

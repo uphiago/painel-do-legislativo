@@ -1356,5 +1356,22 @@ def pipeline_votacoes(
     _echo_db_summary(database)
 
 
+@pipeline_app.command("emendas-portal")
+def pipeline_emendas_portal(
+    ano: Annotated[int, typer.Option("--ano", min=2000)] = 2025,
+    db_path: DbPathOption = None,
+    supabase_sync: Annotated[bool, typer.Option("--supabase")] = False,
+) -> None:
+    """Coleta emendas parlamentares do Portal da Transparencia."""
+    from legislativo_backend.pipeline import collect_emendas_portal
+    from legislativo_backend.supabase_client import SupabaseClient
+
+    database = _db(db_path)
+    supabase = SupabaseClient() if supabase_sync else None
+    result = collect_emendas_portal(database, ano, supabase)
+    typer.echo(f"\nEmendas {ano}: {result['emendas']} coletadas, {result.get('errors', 0)} erros")
+    _echo_db_summary(database)
+
+
 if __name__ == "__main__":
     app()

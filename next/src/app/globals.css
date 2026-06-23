@@ -517,8 +517,8 @@ a {
 
 .dashboard-header {
   position: relative;
-  margin-bottom: 18px;
-  padding: 18px 20px;
+  margin-bottom: 14px;
+  padding: 14px 20px;
   border: 1px solid rgba(30, 40, 48, 0.1);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow);
@@ -526,15 +526,16 @@ a {
 }
 
 .dashboard-header h1 {
-  font-size: clamp(2rem, 2.8vw, 3.35rem);
-  line-height: 0.96;
+  font-size: clamp(1.6rem, 2.8vw, 2.4rem);
+  line-height: 1.05;
 }
 
 .dashboard-header p:not(.eyebrow) {
   max-width: 78ch;
-  margin-top: 8px;
+  margin-top: 4px;
   color: var(--ink-soft);
-  line-height: 1.55;
+  line-height: 1.45;
+  font-size: 0.9rem;
 }
 
 .hero {
@@ -794,18 +795,18 @@ h3 {
 }
 
 .search-card {
-  margin-bottom: 18px;
-  padding: 24px;
+  margin-bottom: 14px;
+  padding: 20px;
   background: var(--panel);
 }
 
 .workbench-head {
-  margin-bottom: 18px;
+  margin-bottom: 14px;
 }
 
 .search-form {
   display: grid;
-  grid-template-columns: minmax(220px, 1.15fr) minmax(220px, 1.15fr) 150px 120px 150px 140px;
+  grid-template-columns: minmax(180px, 1.15fr) minmax(180px, 1.15fr) 120px 100px 130px 120px;
   gap: 12px;
   align-items: end;
 }
