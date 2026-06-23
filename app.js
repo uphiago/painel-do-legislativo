@@ -1,3 +1,5 @@
+// DEPRECATED (2026-06-23): SPA legada substituida pelo Next.js em next/.
+// O dashboard atual esta em next/src/app/dashboard/page.tsx.
 const STORAGE_KEYS = {
   draft: "monitor-parlamentar-web",
   savedSearches: "monitor-parlamentar-web:saved-searches",

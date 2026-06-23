@@ -1,3 +1,5 @@
+// DEPRECATED (2026-06-23): Cloudflare Worker substituido pelo pipeline Python (backend/)
+// + Supabase + Next.js. A busca agora usa full-text search PostgreSQL (to_tsvector).
 const STOPWORDS = new Set([
   "A", "AS", "O", "OS", "UM", "UMA", "UNS", "UMAS", "DE", "DA", "DO", "DAS", "DOS",
   "E", "EM", "NO", "NA", "NOS", "NAS", "POR", "PARA", "COM", "SEM", "SOBRE", "QUE",

@@ -55,13 +55,21 @@ export default function Home() {
     if (!tema || tema.length < 2) return;
     setSearching(true);
     const supabase = createClient();
-    const { data } = await supabase
-      .from("propositions")
-      .select("external_id, sigla, numero, ano, ementa")
-      .ilike("ementa", `%${tema}%`)
-      .order("ano", { ascending: false })
-      .limit(20);
-    setSearchProposicoes(data ?? []);
+    // Full-text search em portugues via funcao PostgreSQL
+    const { data, error } = await supabase
+      .rpc("search_proposicoes", { search_term: tema, max_results: 20 });
+    if (error) {
+      // Fallback para ILIKE se a funcao RPC nao existir (migration nao aplicada)
+      const fallback = await supabase
+        .from("propositions")
+        .select("external_id, sigla, numero, ano, ementa")
+        .ilike("ementa", `%${tema}%`)
+        .order("ano", { ascending: false })
+        .limit(20);
+      setSearchProposicoes(fallback.data ?? []);
+    } else {
+      setSearchProposicoes((data ?? []) as BuscaProposicao[]);
+    }
     setSearching(false);
   }, []);
 
